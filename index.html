@@ -468,7 +468,7 @@ async function getFacebookFollowers() {
         status
       }
 
-      text(selector: "body", visible: true) {
+      pageText: text(selector: "body", visible: true) {
         text
       }
     }`;
@@ -476,7 +476,7 @@ async function getFacebookFollowers() {
     try {
 
         const response = await fetch(
-            "https://production-lon.browserless.io/chromium/bql?token=" +
+            "https://production-sfo.browserless.io/chromium/bql?token=" +
             BROWSERLESS_API_KEY,
             {
                 method: "POST",
