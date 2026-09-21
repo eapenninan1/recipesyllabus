@@ -194,13 +194,28 @@
   .band p{color:#C7CFC5}
   .stat-row{display:flex;gap:38px;margin-top:30px;flex-wrap:wrap}
   .stat b{display:block;font-family:"IBM Plex Mono",monospace;font-size:1.7rem;color:var(--marigold)}
+  
+  /* Facebook Followers */
   #followerCount{
     display:block;
     font-family:"IBM Plex Mono",monospace;
     font-size:1.7rem;
     color:var(--marigold);
     font-weight:500;
+  }  
+  .facebook-label{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:.85rem;
+    color:#94a396;
+  }  
+  .facebook-label svg{
+    width:14px;
+    height:14px;
+    fill:currentColor;
   }
+  
   .stat span{font-size:.85rem;color:#94a396}
   .band-visual{font-family:"IBM Plex Mono",monospace;font-size:.95rem;line-height:2;color:#9fb0a3;border-left:2px solid var(--marigold);padding-left:20px}
   .band-visual .hl{color:var(--paper)}
@@ -371,7 +386,13 @@
               <span id="followerCount">Loading...</span>
             </div>
             </b>
-            <span>Followers</span></div>
+            <span class="facebook-label">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 8h3V4h-3c-3.3 0-5 1.7-5 5v3H6v4h3v4h4v-4h3l1-4h-4V9c0-.7.3-1 1-1z"/>
+              </svg>
+              Followers
+            </span>
+            </div>
           <div class="stat"><b>180+</b><span>recipes explained</span></div>
           <div class="stat"><b>1:1</b><span>tutoring available</span></div>
         </div>
