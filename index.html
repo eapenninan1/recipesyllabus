@@ -381,6 +381,8 @@
         <h2>Two jobs, one habit of asking why</h2>
         <p>I started filming kitchen experiments to explain a concept to my students more memorably than a whiteboard could. The videos outgrew the classroom. I still lecture three days a week — the other days, the kitchen is the classroom.</p>
         <div class="stat-row">
+          
+          
           <div class="stat">
             <b>
             <div id="facebookFollowers">
@@ -393,9 +395,26 @@
               </svg>
               Followers
             </span>
+            </div>          
+          
+            <!-- YouTube Subscribers -->
+            <div class="stat">
+              <b id="youtubeSubscribers">Loading...</b>
+              <span>YouTube Subscribers</span>
             </div>
-          <div class="stat"><b>180+</b><span>recipes explained</span></div>
-          <div class="stat"><b>1:1</b><span>tutoring available</span></div>
+          
+            <!-- YouTube Views -->
+            <div class="stat">
+              <b id="youtubeViews">Loading...</b>
+              <span>YouTube Views</span>
+            </div>
+          
+            <!-- YouTube Videos -->
+            <div class="stat">
+              <b id="youtubeVideos">Loading...</b>
+              <span>YouTube Videos</span>
+            </div>
+          
         </div>
       </div>
       <div class="band-visual">
@@ -484,7 +503,7 @@
   
   
 <script>
-async function getFacebookFollowers() {
+async function getStats() {
     try {
         const response = await fetch(
             "https://facebook-followers-api.eapenninan1.workers.dev"
@@ -496,20 +515,35 @@ async function getFacebookFollowers() {
 
         const data = await response.json();
 
-        console.log("Facebook followers:", data);
+        console.log("Stats:", data);
 
+        // Facebook
         document.getElementById("followerCount").textContent =
-            data.followers || "Not found";
+            data.facebookFollowers || "Not found";
+
+        // YouTube Subscribers
+        document.getElementById("youtubeSubscribers").textContent =
+            data.youtubeSubscribers ?? "Not found";
+
+        // YouTube Views
+        document.getElementById("youtubeViews").textContent =
+            data.youtubeViews ?? "Not found";
+
+        // YouTube Videos
+        document.getElementById("youtubeVideos").textContent =
+            data.youtubeVideos ?? "Not found";
 
     } catch (error) {
-        console.error("Facebook follower error:", error);
+        console.error("Stats error:", error);
 
-        document.getElementById("followerCount").textContent =
-            "Error";
+        document.getElementById("followerCount").textContent = "Error";
+        document.getElementById("youtubeSubscribers").textContent = "Error";
+        document.getElementById("youtubeViews").textContent = "Error";
+        document.getElementById("youtubeVideos").textContent = "Error";
     }
 }
 
-getFacebookFollowers();
+getStats();
 </script>
 
   
