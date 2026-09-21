@@ -358,7 +358,13 @@
         <h2>Two jobs, one habit of asking why</h2>
         <p>I started filming kitchen experiments to explain a concept to my students more memorably than a whiteboard could. The videos outgrew the classroom. I still lecture three days a week — the other days, the kitchen is the classroom.</p>
         <div class="stat-row">
-          <div class="stat"><b>9</b><span>years lecturing</span></div>
+          <div class="stat">
+            <b>
+            <div id="facebookFollowers">
+              Facebook Followers: <span id="followerCount">Loading...</span>
+            </div>
+            </b>
+            <span>Followers</span></div>
           <div class="stat"><b>180+</b><span>recipes explained</span></div>
           <div class="stat"><b>1:1</b><span>tutoring available</span></div>
         </div>
@@ -444,5 +450,78 @@
   });
 </script>
 
+
+
+  
+  
+<script>
+async function getFacebookFollowers() {
+
+    const BROWSERLESS_API_KEY = "2VIgUuTewsqcCRV41551c5645a8e86eb06366a8132844aecc";
+
+    const query = `
+    mutation GetFollowers {
+      goto(
+        url: "https://www.facebook.com/sheeja.eapen"
+        waitUntil: domContentLoaded
+      ) {
+        status
+      }
+
+      text(selector: "body", visible: true) {
+        text
+      }
+    }`;
+
+    try {
+
+        const response = await fetch(
+            "https://production-lon.browserless.io/chromium/bql?token=" +
+            BROWSERLESS_API_KEY,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    query: query
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        const pageText = data?.data?.text?.text || "";
+
+        // Find: 5.5K followers
+        const match = pageText.match(
+            /([\d,.]+[KMB]?)\s+followers/i
+        );
+
+        if (match) {
+            document.getElementById("followerCount").textContent =
+                match[1];
+        } else {
+            document.getElementById("followerCount").textContent =
+                "Not found";
+        }
+
+    } catch (error) {
+
+        console.error("Facebook follower error:", error);
+
+        document.getElementById("followerCount").textContent =
+            "Error";
+
+    }
+}
+
+getFacebookFollowers();
+</script>
+
+  
+
+
+  
 </body>
 </html>
