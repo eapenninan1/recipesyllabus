@@ -320,7 +320,7 @@
 
     quantityInput.addEventListener("input", updateSummary);
 
-    document.getElementById("orderForm").addEventListener("submit", function(e) {
+    document.getElementById("orderForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
       if (!product) {
@@ -340,25 +340,57 @@
         return;
       }
 
-      /*
-        IMPORTANT:
-        This button does NOT create an order yet.
+      const button = document.getElementById("continueButton");
+      button.disabled = true;
+      button.textContent = "Creating order...";
+      message.className = "message";
+      message.style.display = "none";
 
-        We will next add a secure Supabase Edge Function/RPC that:
-        1. validates the product and stock server-side,
-        2. creates the customer,
-        3. creates the order and order_items,
-        4. calculates the trusted amount,
-        5. starts the payment process.
+      const payload = {
+        product_id: product.id,
+        quantity: quantity,
+        name: document.getElementById("name").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        city: document.getElementById("city").value.trim(),
+        state: document.getElementById("state").value.trim(),
+        pincode: document.getElementById("pincode").value.trim()
+      };
 
-        Customer/order/payment tables should NOT be given broad public
-        permissions from the browser.
-      */
+      try {
+        const response = await fetch(
+          `${SUPABASE_URL}/functions/v1/create-order`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": SUPABASE_PUBLISHABLE_KEY,
+              "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+            },
+            body: JSON.stringify(payload)
+          }
+        );
 
-      showMessage(
-        "Your details are valid. Payment integration will be connected in the next step.",
-        "info"
-      );
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          console.error("Create order error:", result);
+          throw new Error(result.error || "Unable to create order");
+        }
+
+        showMessage(
+          `Order created successfully. Order number: ${result.order.order_number}. Total: ₹${Number(result.order.total_amount).toFixed(2)}.`,
+          "info"
+        );
+
+        button.textContent = "Order Created";
+      } catch (error) {
+        console.error("Order submission error:", error);
+        showMessage(error.message || "Unable to create order. Please try again.", "error");
+        button.disabled = false;
+        button.textContent = "Continue to Payment";
+      }
     });
 
     loadProduct();
