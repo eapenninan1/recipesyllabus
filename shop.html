@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop | Recipe Syllabus</title>
+
+  <!-- Supabase JavaScript client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #fffaf5;
+      color: #222;
+    }
+
+    header {
+      background: #8b2f2f;
+      color: white;
+      padding: 18px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    header p {
+      margin: 6px 0 0;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 18px;
+    }
+
+    .shop-title {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .shop-title h2 {
+      margin-bottom: 8px;
+      font-size: 30px;
+    }
+
+    .shop-title p {
+      color: #666;
+    }
+
+    #products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 22px;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.10);
+      border: 1px solid #eee;
+      transition: transform 0.2s ease;
+    }
+
+    .product-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 230px;
+      object-fit: cover;
+      background: #eee;
+    }
+
+    .product-content {
+      padding: 18px;
+    }
+
+    .product-name {
+      font-size: 21px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .product-description {
+      color: #666;
+      line-height: 1.5;
+      min-height: 48px;
+    }
+
+    .product-price {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 15px 0 5px;
+      color: #8b2f2f;
+    }
+
+    .stock {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 14px;
+    }
+
+    .buy-button {
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      padding: 13px;
+      background: #8b2f2f;
+      color: white;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .buy-button:hover {
+      background: #6f2323;
+    }
+
+    .buy-button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    #message {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+    }
+
+    footer {
+      text-align: center;
+      padding: 35px 15px;
+      color: #777;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>Recipe Syllabus</h1>
+  <p>Homemade Products</p>
+</header>
+
+<div class="container">
+
+  <div class="shop-title">
+    <h2>🛒 Shop</h2>
+    <p>Our homemade products</p>
+  </div>
+
+  <div id="message">Loading products...</div>
+
+  <div id="products"></div>
+
+</div>
+
+<footer>
+  © Recipe Syllabus
+</footer>
+
+<script>
+  // =========================================================
+  // SUPABASE CONNECTION
+  // =========================================================
+
+  const SUPABASE_URL = "https://nuipcuxyebsvnxlucjfk.supabase.co";
+
+  // IMPORTANT:
+  // Replace the value below with your Supabase PUBLISHABLE KEY.
+  // Do NOT use the sb_secret_ key.
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_S5U1KWrJEGYccqpmMXgTKw_g9YWevf2";
+
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+
+  // =========================================================
+  // LOAD PRODUCTS
+  // =========================================================
+
+  async function loadProducts() {
+
+    const message = document.getElementById("message");
+    const productsContainer = document.getElementById("products");
+
+    const { data, error } = await db
+      .from("products")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+
+      message.textContent =
+        "Unable to load products. Please try again later.";
+
+      return;
+    }
+
+    message.style.display = "none";
+
+    if (!data || data.length === 0) {
+      message.style.display = "block";
+      message.textContent = "No products available at the moment.";
+      return;
+    }
+
+    productsContainer.innerHTML = "";
+
+    data.forEach(product => {
+
+      const card = document.createElement("div");
+      card.className = "product-card";
+
+      const image = product.image_url
+        ? `<img class="product-image"
+                src="${escapeHtml(product.image_url)}"
+                alt="${escapeHtml(product.name)}">`
+        : `<div class="product-image"
+                style="display:flex;align-items:center;justify-content:center;">
+                <span>No image</span>
+           </div>`;
+
+      const soldOut = product.stock_quantity <= 0;
+
+      card.innerHTML = `
+        ${image}
+
+        <div class="product-content">
+
+          <div class="product-name">
+            ${escapeHtml(product.name)}
+          </div>
+
+          <div class="product-description">
+            ${escapeHtml(product.description || "")}
+          </div>
+
+          <div class="product-price">
+            ₹${Number(product.price).toFixed(2)}
+          </div>
+
+          <div class="stock">
+            ${soldOut
+              ? "Out of stock"
+              : `${product.stock_quantity} available`}
+          </div>
+
+          <button
+            class="buy-button"
+            ${soldOut ? "disabled" : ""}
+            onclick="buyProduct(${product.id})">
+            ${soldOut ? "Out of Stock" : "BUY NOW"}
+          </button>
+
+        </div>
+      `;
+
+      productsContainer.appendChild(card);
+    });
+  }
+
+
+  // =========================================================
+  // BUY BUTTON
+  // =========================================================
+
+  function buyProduct(productId) {
+
+    // For now we only demonstrate the product selection.
+    // The next step will replace this with the customer
+    // order form and Supabase order creation.
+
+    window.location.href =
+      "order.html?product_id=" + encodeURIComponent(productId);
+  }
+
+
+  // =========================================================
+  // BASIC HTML ESCAPING
+  // =========================================================
+
+  function escapeHtml(value) {
+
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+
+  // Start
+  loadProducts();
+
+</script>
+
+</body>
+</html>
