@@ -3,149 +3,243 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shop | Recipe Syllabus</title>
+  <title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@500&family=Karla:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >    
+    Shop | Recipe Syllabus
+  </title>
 
   <!-- Supabase JavaScript client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+  :root {
+    --paper: #EDEFE6;
+    --paper-dim: #E3E6D8;
+    --ink: #22302A;
+    --marigold: #E8A33D;
+    --chalk: #4C6B8A;
+    --line: #D2D2C2;
+    --dark: #1B2621;
+    --header-bg: #F7F1E2;
+  }
 
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #fffaf5;
-      color: #222;
-    }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-    header {
-      background: #8b2f2f;
-      color: white;
-      padding: 18px 20px;
-      text-align: center;
-    }
+  html {
+    scroll-behavior: smooth;
+  }
 
-    header h1 {
-      margin: 0;
-      font-size: 28px;
-    }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Karla", Arial, sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
 
-    header p {
-      margin: 6px 0 0;
-      font-size: 14px;
-    }
+  img {
+    max-width: 100%;
+    display: block;
+  }
 
+  /* HEADER */
+  header {
+    background: rgba(247, 241, 226, 0.96);
+    color: var(--ink);
+    padding: 18px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+  }
+
+  header h1 {
+    margin: 0;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: #657168;
+  }
+
+  /* MAIN */
+  .container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 64px 24px 78px;
+  }
+
+  .shop-title {
+    margin-bottom: 44px;
+  }
+
+  .shop-title h2 {
+    margin: 0 0 10px;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(2rem, 3.2vw, 2.6rem);
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  .shop-title p {
+    margin: 0;
+    color: #3C4A42;
+    font-size: 1rem;
+  }
+
+  /* PRODUCT GRID */
+  #products {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 28px;
+  }
+
+  /* PRODUCT CARD */
+  .product-card {
+    background: var(--header-bg);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: none;
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .product-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--chalk);
+  }
+
+  /* IMAGE */
+  .product-image {
+    width: 100%;
+    height: 230px;
+    object-fit: cover;
+    background: var(--paper-dim);
+  }
+
+  /* CONTENT */
+  .product-content {
+    padding: 22px;
+  }
+
+  .product-name {
+    margin-bottom: 8px;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 1.45rem;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+
+  .product-description {
+    min-height: 48px;
+    color: #3C4A42;
+    line-height: 1.55;
+  }
+
+  .product-price {
+    margin: 18px 0 6px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .stock {
+    margin-bottom: 18px;
+    color: #657168;
+    font-size: 0.88rem;
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  /* BUY BUTTON */
+  .buy-button {
+    width: 100%;
+    border: 0;
+    border-radius: 2px;
+    padding: 14px 20px;
+    background: #F0C860;
+    color: var(--dark);
+    font-family: "Karla", Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+  
+  .buy-button:hover {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .buy-button:disabled {
+    background: #A7AEA7;
+    color: #EDEFE6;
+    cursor: not-allowed;
+  }
+
+  /* MESSAGE */
+  #message {
+    text-align: center;
+    padding: 30px;
+    color: #657168;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 30px 24px;
+    text-align: center;
+    color: #657168;
+    font-size: 0.85rem;
+    background: var(--paper);
+  }
+
+  /* ACCESSIBILITY */
+  :focus-visible {
+    outline: 2px solid var(--chalk);
+    outline-offset: 3px;
+  }
+
+  /* MOBILE */
+  @media (max-width: 650px) {
     .container {
-      max-width: 1100px;
-      margin: 30px auto;
-      padding: 0 18px;
+      padding: 46px 18px 60px;
     }
 
     .shop-title {
-      text-align: center;
-      margin-bottom: 25px;
-    }
-
-    .shop-title h2 {
-      margin-bottom: 8px;
-      font-size: 30px;
-    }
-
-    .shop-title p {
-      color: #666;
+      margin-bottom: 32px;
     }
 
     #products {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: 1fr;
       gap: 22px;
     }
 
-    .product-card {
-      background: white;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.10);
-      border: 1px solid #eee;
-      transition: transform 0.2s ease;
-    }
-
-    .product-card:hover {
-      transform: translateY(-3px);
-    }
-
     .product-image {
-      width: 100%;
-      height: 230px;
-      object-fit: cover;
-      background: #eee;
+      height: 220px;
     }
-
-    .product-content {
-      padding: 18px;
-    }
-
-    .product-name {
-      font-size: 21px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .product-description {
-      color: #666;
-      line-height: 1.5;
-      min-height: 48px;
-    }
-
-    .product-price {
-      font-size: 24px;
-      font-weight: bold;
-      margin: 15px 0 5px;
-      color: #8b2f2f;
-    }
-
-    .stock {
-      font-size: 14px;
-      color: #555;
-      margin-bottom: 14px;
-    }
-
-    .buy-button {
-      width: 100%;
-      border: 0;
-      border-radius: 8px;
-      padding: 13px;
-      background: #8b2f2f;
-      color: white;
-      font-size: 17px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .buy-button:hover {
-      background: #6f2323;
-    }
-
-    .buy-button:disabled {
-      background: #aaa;
-      cursor: not-allowed;
-    }
-
-    #message {
-      text-align: center;
-      padding: 30px;
-      color: #666;
-    }
-
-    footer {
-      text-align: center;
-      padding: 35px 15px;
-      color: #777;
-      font-size: 14px;
-    }
-  </style>
+  }
+</style>
 </head>
 
 <body>
