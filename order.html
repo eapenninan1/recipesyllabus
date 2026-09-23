@@ -229,7 +229,7 @@
       </form>
     </div>
   </main>
-
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // IMPORTANT:
@@ -374,17 +374,125 @@
 
         const result = await response.json();
 
-        if (!response.ok || !result.success) {
-          console.error("Create order error:", result);
-          throw new Error(result.error || "Unable to create order");
-        }
+if (!response.ok || !result.success) {
+  console.error("Create order error:", result);
+  throw new Error(result.error || "Unable to create order");
+}
 
-        showMessage(
-                  `Order created successfully. Order number: ${result.order_number}. Total: ₹${Number(result.total_amount).toFixed(2)}.`,
-          "info"
+// Database order has been created.
+// Now create the Razorpay payment order.
+const paymentResponse = await fetch(
+  `${SUPABASE_URL}/functions/v1/create-payment-order`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_PUBLISHABLE_KEY,
+      "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+    },
+    body: JSON.stringify({
+      order_id: result.order_id,
+      order_number: result.order_number
+    })
+  }
+);
+
+const paymentResult = await paymentResponse.json();
+
+console.log("create-payment-order:", paymentResult);
+
+if (!paymentResponse.ok) {
+  throw new Error(
+    paymentResult.error ||
+    "Unable to create Razorpay payment order"
+  );
+}
+
+const razorpayOrderId =
+  paymentResult.razorpay_order_id ||
+  paymentResult.order_id;
+
+const razorpayAmount =
+  paymentResult.amount;
+
+const razorpayCurrency =
+  paymentResult.currency || "INR";
+
+const razorpayKey =
+  paymentResult.key_id ||
+  paymentResult.razorpay_key_id;
+
+if (!razorpayOrderId) {
+  throw new Error("Razorpay order ID was not returned.");
+}
+
+if (!razorpayKey) {
+  throw new Error("Razorpay Key ID was not returned.");
+}
+
+// Open Razorpay Checkout
+const options = {
+  key: razorpayKey,
+  amount: Number(razorpayAmount),
+  currency: razorpayCurrency,
+  name: "Recipe Syllabus",
+  description: product.name,
+  order_id: razorpayOrderId,
+
+  prefill: {
+    name: document.getElementById("name").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    contact: document.getElementById("phone").value.trim()
+  },
+
+  handler: async function(payment) {
+
+    console.log("Razorpay payment:", payment);
+
+    // Send payment details to verify-payment
+    const verifyResponse = await fetch(
+      `${SUPABASE_URL}/functions/v1/verify-payment`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_PUBLISHABLE_KEY,
+          "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+        },
+        body: JSON.stringify({
+          order_id: result.order_id,
+          order_number: result.order_number,
+          razorpay_order_id: payment.razorpay_order_id,
+          razorpay_payment_id: payment.razorpay_payment_id,
+          razorpay_signature: payment.razorpay_signature
+        })
+      }
+    );
+
+      const verifyResult = await verifyResponse.json();
+  
+      console.log("verify-payment:", verifyResult);
+  
+      if (!verifyResponse.ok || !verifyResult.success) {
+        throw new Error(
+          verifyResult.error ||
+          "Payment verification failed"
         );
-
-        button.textContent = "Order Created";
+      }
+  
+      showMessage(
+        "Payment successful! Your order has been confirmed.",
+        "success"
+      );
+  
+      button.textContent = "Payment Successful";
+      button.disabled = true;
+    }
+  };
+  
+  const razorpay = new Razorpay(options);
+  
+  razorpay.open();
       } catch (error) {
         console.error("Order submission error:", error);
         showMessage(error.message || "Unable to create order. Please try again.", "error");
