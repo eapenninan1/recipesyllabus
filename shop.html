@@ -3,14 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link
-      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@500&family=Karla:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    >    
-    Shop | Recipe Syllabus
-  </title>
+
+  <title>Shop | Recipe Syllabus</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@500&family=Karla:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  >
 
   <!-- Supabase JavaScript client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -39,7 +41,9 @@
 
   body {
     margin: 0;
-    background: var(--paper);
+    background:
+      radial-gradient(circle at 15% 10%, rgba(232,163,61,0.08), transparent 28%),
+      linear-gradient(180deg, #E3E6D8 0%, #EDEFE6 45%, #EDEFE6 100%);
     color: var(--ink);
     font-family: "Karla", Arial, sans-serif;
     line-height: 1.65;
@@ -60,13 +64,11 @@
     border-bottom: 1px solid var(--line);
   }
 
-  header h1 {
-    margin: 0;
-    font-family: "Newsreader", Georgia, serif;
-    font-size: 28px;
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -0.01em;
+  .site-logo {
+    width: 250px;
+    max-width: 80%;
+    height: auto;
+    margin: 0 auto 8px;
   }
 
   header p {
@@ -245,7 +247,11 @@
 <body>
 
 <header>
-  <h1>Recipe Syllabus</h1>
+  <img
+    src="recipe-syllabus-logo.png"
+    alt="Recipe Syllabus"
+    class="site-logo"
+  >
   <p>Homemade Products</p>
 </header>
 
