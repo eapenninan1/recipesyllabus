@@ -740,8 +740,8 @@ function getPayment(orderId) {
 
   function renderOrderCard(order) {
     const customer = getCustomer(order);
-    const items = getItems(order);
-    const payment = getPayment(order);
+    const items = getItems(order.id);
+    const payment = getPayment(order.id);
     const isCancelled = order.payment_status === "cancelled" || order.status === "cancelled";
     const canFulfill = order.payment_status === "paid" && !isCancelled;
 
