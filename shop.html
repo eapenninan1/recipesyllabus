@@ -57,26 +57,144 @@
   }
 
   /* HEADER */
-  header {
-    background: rgba(247, 241, 226, 0.96);
-    color: var(--ink);
-    padding: 18px 20px;
-    text-align: center;
-    border-bottom: 1px solid var(--line);
+  /* HEADER — MATCH INDEX.HTML */
+
+header.site {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: rgba(247, 241, 226, 0.96);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
+
+header.site nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* LEFT BRAND */
+.shop-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.shop-logo {
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.shop-logo-main {
+  width: 78px;
+  height: 54px;
+}
+
+.shop-logo-sheeja {
+  width: 62px;
+  height: 54px;
+}
+
+.shop-brand-text {
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.shop-brand-name {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.shop-brand-subtitle {
+  margin-top: 5px;
+  font-family: "Karla", Arial, sans-serif;
+  font-size: 0.82rem;
+  color: #657168;
+}
+
+/* RIGHT NAV */
+.nav-collapsible {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+  list-style: none;
+  font-size: 0.95rem;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--ink);
+  transition: color 0.2s ease;
+}
+
+.nav-links a:hover {
+  color: var(--chalk);
+}
+
+/* MOBILE */
+@media (max-width: 850px) {
+
+  header.site nav {
+    padding: 14px 18px;
   }
 
-  .site-logo {
-    width: 250px;
-    max-width: 80%;
-    height: auto;
-    margin: 0 auto 8px;
+  .shop-brand {
+    gap: 9px;
   }
 
-  header p {
-    margin: 6px 0 0;
-    font-size: 14px;
-    color: #657168;
+  .shop-logo-main {
+    width: 62px;
+    height: 46px;
   }
+
+  .shop-logo-sheeja {
+    width: 50px;
+    height: 46px;
+  }
+
+  .shop-brand-name {
+    font-size: 1.1rem;
+  }
+
+  .shop-brand-subtitle {
+    font-size: 0.72rem;
+  }
+
+  .nav-links {
+    gap: 15px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 650px) {
+
+  .nav-links {
+    display: none;
+  }
+
+  .shop-brand-name {
+    font-size: 1.05rem;
+  }
+
+  .shop-brand-subtitle {
+    font-size: 0.7rem;
+  }
+}
+  
 
   /* MAIN */
   .container {
@@ -247,13 +365,43 @@
 
 <body>
 
-<header>
-  <img
-    src="recipe-syllabus-logo.png"
-    alt="Recipe Syllabus"
-    class="site-logo"
-  >
-  <p>Homemade Products</p>
+<header class="site">
+  <nav id="mainNav">
+
+    <!-- LEFT BRAND -->
+    <div class="shop-brand">
+
+      <img
+        src="images/RecipeSyllabusLogo.png"
+        alt="Recipe Syllabus"
+        class="shop-logo shop-logo-main"
+      >
+
+      <img
+        src="images/sheeja-eapen-logo.png"
+        alt="Sheeja Eapen"
+        class="shop-logo shop-logo-sheeja"
+      >
+
+      <div class="shop-brand-text">
+        <div class="shop-brand-name">Recipe Syllabus</div>
+        <div class="shop-brand-subtitle">Homemade Products</div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT NAVIGATION -->
+    <div class="nav-collapsible">
+      <ul class="nav-links">
+        <li><a href="index.html#work">Videos</a></li>
+        <li><a href="index.html#teaching">Teaching</a></li>
+        <li><a href="shop.html">Shop</a></li>
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+      </ul>
+    </div>
+
+  </nav>
 </header>
 
 <div class="container">
