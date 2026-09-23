@@ -551,7 +551,7 @@
   }
 
   function getCustomer(order) {
-    return state.customers.find(c => c.id === order.customer_id) || {};
+    return state.customers.find(c => String(c.id) === String(order.customer_id)) || {};
   }
 
   function getItems(orderId) {
@@ -631,29 +631,57 @@
     const ordersMessage = $("ordersMessage");
     showMessage(ordersMessage, "Loading orders...", "info");
 
-    const [ordersRes, customersRes, itemsRes, productsRes, paymentsRes] = await Promise.all([
-      db.from("orders").select("*").order("created_at", { ascending: false }),
-      db.from("customers").select("*"),
-      db.from("order_items").select("*"),
-      db.from("products").select("*"),
-      db.from("payments").select("*")
-    ]);
+    try {
+      // Load the base records first.
+      const [ordersRes, customersRes, productsRes, paymentsRes] = await Promise.all([
+        db.from("orders").select("*").order("created_at", { ascending: false }),
+        db.from("customers").select("*"),
+        db.from("products").select("*"),
+        db.from("payments").select("*")
+      ]);
 
-    const firstError = [ordersRes, customersRes, itemsRes, productsRes, paymentsRes]
-      .find(r => r.error)?.error;
-    if (firstError) {
-      showMessage(ordersMessage, firstError.message || "Unable to load order data.", "error");
-      return;
+      const firstError = [ordersRes, customersRes, productsRes, paymentsRes]
+        .find(r => r.error)?.error;
+      if (firstError) throw firstError;
+
+      state.orders = ordersRes.data || [];
+      state.customers = customersRes.data || [];
+      state.products = productsRes.data || [];
+      state.payments = paymentsRes.data || [];
+
+      // Load order items separately after the orders/products are known.
+      const itemsRes = await db
+        .from("order_items")
+        .select("id, order_id, product_id, quantity")
+        .order("id", { ascending: true });
+
+      if (itemsRes.error) throw itemsRes.error;
+
+      state.orderItems = (itemsRes.data || []).map(item => ({
+        ...item,
+        order_id: String(item.order_id),
+        product_id: String(item.product_id),
+        quantity: Number(item.quantity)
+      }));
+
+      console.log("Admin data loaded:", {
+        orders: state.orders.length,
+        customers: state.customers.length,
+        orderItems: state.orderItems.length,
+        products: state.products.length,
+        payments: state.payments.length
+      });
+
+      hideMessage(ordersMessage);
+      renderOrders();
+    } catch (error) {
+      console.error("Admin order loading error:", error);
+      showMessage(
+        ordersMessage,
+        error.message || "Unable to load order data.",
+        "error"
+      );
     }
-
-    state.orders = ordersRes.data || [];
-    state.customers = customersRes.data || [];
-    state.orderItems = itemsRes.data || [];
-    state.products = productsRes.data || [];
-    state.payments = paymentsRes.data || [];
-
-    hideMessage(ordersMessage);
-    renderOrders();
   }
 
   function orderMatches(order, query) {
