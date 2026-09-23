@@ -551,20 +551,28 @@
   }
 
   function getCustomer(order) {
-    return state.customers.find(c => Number(c.id) === Number(order.customer_id)) || {};
-  }
+  return state.customers.find(
+    c => String(c.id) === String(order.customer_id)
+  ) || {};
+}
 
-  function getItems(orderId) {
-    return state.orderItems.filter(i => Number(i.order_id) === Number(orderId));
-  }
+function getItems(orderId) {
+  return state.orderItems.filter(
+    i => String(i.order_id) === String(orderId)
+  );
+}
 
-  function getProduct(productId) {
-    return state.products.find(p => Number(p.id) === Number(productId)) || {};
-  }
+function getProduct(productId) {
+  return state.products.find(
+    p => String(p.id) === String(productId)
+  ) || {};
+}
 
-  function getPayment(orderId) {
-    return state.payments.find(p => Number(p.order_id) === Number(orderId)) || {};
-  }
+function getPayment(orderId) {
+  return state.payments.find(
+    p => String(p.order_id) === String(orderId)
+  ) || {};
+}
 
   function fulfillmentLabel(value) {
     const map = {
