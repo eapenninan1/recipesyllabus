@@ -375,6 +375,26 @@
       outline-offset: 3px;
     }
   
+    .confirmation-success {
+      background: #E1EBDD;
+      color: #31553B;
+      border: 1px solid #B7C9B4;
+      padding: 16px;
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 20px;
+      border-radius: 2px;
+    }
+
+    .confirmation-box .summary-row span:last-child {
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .confirmation-box strong {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
     /* =========================
        MOBILE
        ========================= */
@@ -563,6 +583,84 @@
 
         <div id="message" class="message"></div>
       </form>
+    </div>
+
+    <div class="box confirmation-box" id="confirmationBox" style="display:none;">
+      <h2>Order Confirmed</h2>
+
+      <div class="confirmation-success">
+        ✓ Payment Successful
+      </div>
+
+      <div class="summary">
+        <div class="summary-row">
+          <span>Order Number</span>
+          <strong id="confirmOrderNumber">—</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Product</span>
+          <span id="confirmProduct">—</span>
+        </div>
+
+        <div class="summary-row">
+          <span>Quantity</span>
+          <span id="confirmQuantity">—</span>
+        </div>
+
+        <div class="summary-row total">
+          <span>Amount Paid</span>
+          <span id="confirmAmount">—</span>
+        </div>
+
+        <div class="summary-row">
+          <span>Payment Status</span>
+          <span>Paid</span>
+        </div>
+
+        <div class="summary-row">
+          <span>Payment Reference</span>
+          <span id="confirmPaymentId">—</span>
+        </div>
+      </div>
+
+      <h3 style="margin-top:28px;">Delivery Details</h3>
+
+      <div class="summary">
+        <div class="summary-row">
+          <span>Name</span>
+          <span id="confirmName">—</span>
+        </div>
+
+        <div class="summary-row">
+          <span>Mobile</span>
+          <span id="confirmPhone">—</span>
+        </div>
+
+        <div class="summary-row">
+          <span>Address</span>
+          <span id="confirmAddress">—</span>
+        </div>
+
+        <div class="summary-row">
+          <span>City</span>
+          <span id="confirmCity">—</span>
+        </div>
+
+        <div class="summary-row">
+          <span>State</span>
+          <span id="confirmState">—</span>
+        </div>
+
+        <div class="summary-row">
+          <span>PIN Code</span>
+          <span id="confirmPincode">—</span>
+        </div>
+      </div>
+
+      <button type="button" onclick="window.location.href='shop.html'">
+        Back to Shop
+      </button>
     </div>
   </main>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -871,23 +969,62 @@
             }
         
             // =====================================================
-            // PAYMENT SUCCESS
+            // PAYMENT SUCCESS → SHOW ORDER CONFIRMATION
             // =====================================================
         
-            showMessage(
-              "Payment successful! Your order has been confirmed.",
-              "success"
-            );
-        
-            button.textContent =
-              "Payment Successful";
-        
-            button.disabled = true;
-        
-            console.log(
-              "Order finalized:",
-              verifyResult.order
-            );
+            const order = verifyResult.order;
+
+            // Hide the product/order-entry boxes.
+            document.querySelectorAll("main > .box").forEach(box => {
+              box.style.display = "none";
+            });
+
+            const confirmationBox =
+              document.getElementById("confirmationBox");
+
+            confirmationBox.style.display = "block";
+
+            // Order information
+            document.getElementById("confirmOrderNumber").textContent =
+              order?.order_number || "—";
+
+            document.getElementById("confirmProduct").textContent =
+              order?.product || product.name || "—";
+
+            document.getElementById("confirmQuantity").textContent =
+              order?.quantity || quantity;
+
+            document.getElementById("confirmAmount").textContent =
+              money(order?.total_amount ?? (product.price * quantity));
+
+            document.getElementById("confirmPaymentId").textContent =
+              payment.razorpay_payment_id || "—";
+
+            // Customer information
+            document.getElementById("confirmName").textContent =
+              document.getElementById("name").value.trim();
+
+            document.getElementById("confirmPhone").textContent =
+              document.getElementById("phone").value.trim();
+
+            document.getElementById("confirmAddress").textContent =
+              document.getElementById("address").value.trim();
+
+            document.getElementById("confirmCity").textContent =
+              document.getElementById("city").value.trim();
+
+            document.getElementById("confirmState").textContent =
+              document.getElementById("state").value.trim();
+
+            document.getElementById("confirmPincode").textContent =
+              document.getElementById("pincode").value.trim();
+
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth"
+            });
+
+            console.log("Order finalized:", order);
         
           } catch (error) {
         
