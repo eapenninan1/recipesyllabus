@@ -475,20 +475,103 @@
           },
     
           handler: async function(payment) {
-    
+
+          console.log(
+            "Razorpay payment response:",
+            payment
+          );
+        
+          showMessage(
+            "Payment received. Verifying payment...",
+            "info"
+          );
+        
+          try {
+        
+            // =====================================================
+            // VERIFY PAYMENT WITH SUPABASE
+            // =====================================================
+        
+            const verifyResponse = await fetch(
+              `${SUPABASE_URL}/functions/v1/verify-payment`,
+              {
+                method: "POST",
+        
+                headers: {
+                  "Content-Type": "application/json",
+                  "apikey": SUPABASE_PUBLISHABLE_KEY,
+                  "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+                },
+        
+                body: JSON.stringify({
+                  razorpay_order_id:
+                    payment.razorpay_order_id,
+        
+                  razorpay_payment_id:
+                    payment.razorpay_payment_id,
+        
+                  razorpay_signature:
+                    payment.razorpay_signature
+                })
+              }
+            );
+        
+            const verifyResult =
+              await verifyResponse.json();
+        
             console.log(
-              "Razorpay payment response:",
-              payment
+              "verify-payment:",
+              verifyResult
             );
-    
+        
+            if (
+              !verifyResponse.ok ||
+              !verifyResult.success
+            ) {
+              throw new Error(
+                verifyResult.error ||
+                "Payment verification failed"
+              );
+            }
+        
+            // =====================================================
+            // PAYMENT SUCCESS
+            // =====================================================
+        
             showMessage(
-              "Payment received. Verifying payment...",
-              "info"
+              "Payment successful! Your order has been confirmed.",
+              "success"
             );
-    
-            // VERIFY PAYMENT WILL BE CONNECTED IN THE NEXT STEP
-    
-          },
+        
+            button.textContent =
+              "Payment Successful";
+        
+            button.disabled = true;
+        
+            console.log(
+              "Order finalized:",
+              verifyResult.order
+            );
+        
+          } catch (error) {
+        
+            console.error(
+              "Payment verification error:",
+              error
+            );
+        
+            showMessage(
+              error.message ||
+              "Payment verification failed.",
+              "error"
+            );
+        
+            button.disabled = false;
+        
+            button.textContent =
+              "Continue to Payment";
+          }
+        },
     
           modal: {
             ondismiss: function() {
