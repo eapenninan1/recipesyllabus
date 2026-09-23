@@ -555,15 +555,15 @@
   }
 
   function getItems(orderId) {
-    return state.orderItems.filter(i => i.order_id === orderId);
+    return state.orderItems.filter(i => String(i.order_id) === String(orderId));
   }
 
   function getProduct(productId) {
-    return state.products.find(p => p.id === productId) || {};
+    return state.products.find(p => String(p.id) === String(productId)) || {};
   }
 
   function getPayment(orderId) {
-    return state.payments.find(p => p.order_id === orderId) || {};
+    return state.payments.find(p => String(p.order_id) === String(orderId)) || {};
   }
 
   function fulfillmentLabel(value) {
