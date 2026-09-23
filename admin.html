@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Syllabus — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --paper: #f7f1e2;
+      --paper-dim: #efe6d2;
+      --header-bg: #fbf7ed;
+      --ink: #24322b;
+      --muted: #657168;
+      --line: #d9d0bf;
+      --accent: #8b2f2f;
+      --accent-dark: #6f2323;
+      --gold: #c99b42;
+      --success: #2f6f4e;
+      --warning: #9a6a20;
+      --danger: #9b3434;
+      --white: #fffdf8;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Karla", Arial, sans-serif;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+
+    /* AUTH */
+    #authScreen {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .auth-card {
+      width: min(420px, 100%);
+      background: var(--header-bg);
+      border: 1px solid var(--line);
+      padding: 30px;
+      box-shadow: 0 18px 55px rgba(35, 41, 34, 0.09);
+    }
+    .auth-brand {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .auth-brand h1 {
+      margin: 0 0 8px;
+      font-family: "Newsreader", Georgia, serif;
+      font-weight: 500;
+      font-size: 2rem;
+    }
+    .auth-brand p { margin: 0; color: var(--muted); }
+
+    /* APP SHELL */
+    header.site {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(247, 241, 226, 0.96);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--line);
+    }
+    header.site nav {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+    .brand-text { min-width: 0; }
+    .brand-title {
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.2rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .brand-subtitle { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+    .nav-actions { display: flex; gap: 10px; align-items: center; }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 34px 20px 70px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .topbar h2 {
+      margin: 0 0 6px;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: clamp(2rem, 4vw, 2.6rem);
+      font-weight: 500;
+    }
+    .topbar p { margin: 0; color: var(--muted); }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+    .tab {
+      border: 0;
+      background: transparent;
+      padding: 11px 16px;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .panel {
+      background: var(--header-bg);
+      border: 1px solid var(--line);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .panel h3 {
+      margin: 0;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.55rem;
+      font-weight: 500;
+    }
+    .summary { color: var(--muted); font-size: .92rem; }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) 200px auto;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .field { display: grid; gap: 6px; }
+    .field label { font-size: .85rem; color: var(--muted); font-weight: 700; }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--white);
+      color: var(--ink);
+      border-radius: 6px;
+      padding: 10px 11px;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+    textarea { min-height: 110px; resize: vertical; }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--white);
+      color: var(--ink);
+      padding: 10px 13px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .btn:hover { border-color: var(--gold); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+    .btn-success { background: var(--success); border-color: var(--success); color: white; }
+    .btn-danger { background: white; color: var(--danger); border-color: #d7a2a2; }
+    .btn-small { padding: 7px 9px; font-size: .88rem; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      border: 1px solid var(--line);
+      background: var(--paper-dim);
+      white-space: nowrap;
+    }
+    .status-paid { background: #e1efe5; color: #23543b; border-color: #b9d3c0; }
+    .status-cancelled { background: #f5dfdf; color: #7c2525; border-color: #e2bcbc; }
+    .status-ready { background: #f4ead2; color: #76531a; border-color: #dec99a; }
+    .status-packed { background: #e1eaf3; color: #34546e; border-color: #bccddd; }
+    .status-shipped { background: #e1e2f4; color: #444b83; border-color: #c2c4df; }
+    .status-delivered { background: #dfeee4; color: #2e6647; border-color: #bad5c3; }
+
+    .orders-list { display: grid; gap: 14px; }
+    .order-card {
+      border: 1px solid var(--line);
+      background: var(--white);
+      padding: 16px;
+    }
+    .order-card-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+    .order-no { font-weight: 800; font-size: 1rem; word-break: break-word; }
+    .order-time { color: var(--muted); font-size: .82rem; margin-top: 3px; }
+    .order-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .detail-box {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+    .detail-label { color: var(--muted); font-size: .78rem; margin-bottom: 3px; font-weight: 700; }
+    .detail-value { font-size: .92rem; line-height: 1.45; word-break: break-word; }
+    .order-footer {
+      border-top: 1px solid var(--line);
+      margin-top: 12px;
+      padding-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+    .courier-fields {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr);
+      gap: 10px;
+    }
+    .order-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .item-row { margin-top: 5px; }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .product-card {
+      border: 1px solid var(--line);
+      background: var(--white);
+      overflow: hidden;
+    }
+    .product-image-wrap { aspect-ratio: 4/3; background: var(--paper-dim); }
+    .product-image-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .no-image { height: 100%; display: grid; place-items: center; color: var(--muted); }
+    .product-body { padding: 14px; }
+    .product-row { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+    .product-name { font-family: "Newsreader", Georgia, serif; font-size: 1.28rem; }
+    .product-price { font-weight: 800; font-size: 1.1rem; }
+    .product-desc { color: var(--muted); line-height: 1.45; margin: 7px 0; min-height: 42px; }
+    .stock-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 12px 0; }
+    .stock-pill { font-weight: 800; font-size: .9rem; }
+    .stock-low { color: var(--warning); }
+    .stock-out { color: var(--danger); }
+    .product-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .editor {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 16px;
+    }
+    .editor-card { border: 1px solid var(--line); background: var(--white); padding: 16px; }
+    .editor-card h4 { margin: 0 0 14px; font-family: "Newsreader", Georgia, serif; font-size: 1.35rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .full { grid-column: 1/-1; }
+    .editor-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+    .preview {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: var(--paper-dim);
+      border: 1px dashed var(--line);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .preview img { width: 100%; height: 100%; object-fit: cover; }
+    .message { padding: 10px 12px; margin-bottom: 12px; border-radius: 6px; font-size: .92rem; }
+    .message-info { background: #eef1ee; color: var(--ink); border: 1px solid var(--line); }
+    .message-error { background: #f8e7e7; color: #792727; border: 1px solid #e2bcbc; }
+    .message-success { background: #e6f2e9; color: #245a3b; border: 1px solid #bed7c6; }
+    .empty { text-align: center; color: var(--muted); padding: 28px 10px; }
+    .muted { color: var(--muted); }
+
+    @media (max-width: 900px) {
+      .order-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .order-footer { grid-template-columns: 1fr; }
+      .editor { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      header.site nav { padding: 12px 14px; }
+      .brand-mark { width: 42px; height: 42px; }
+      .brand-title { font-size: 1.05rem; }
+      main { padding: 25px 14px 60px; }
+      .filters { grid-template-columns: 1fr; }
+      .order-card-top { grid-template-columns: 1fr; }
+      .order-grid { grid-template-columns: 1fr; }
+      .courier-fields { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .full { grid-column: auto; }
+      .nav-actions { gap: 6px; }
+      .nav-actions .btn { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<section id="authScreen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <h1>Recipe Syllabus</h1>
+      <p>Admin Dashboard</p>
+    </div>
+
+    <div id="authMessage" class="hidden"></div>
+
+    <form id="loginForm">
+      <div class="field" style="margin-bottom:12px;">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="username" required>
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn btn-primary" type="submit" id="loginButton" style="width:100%;">Sign in</button>
+    </form>
+  </div>
+</section>
+
+<section id="app" class="hidden">
+  <header class="site">
+    <nav>
+      <div class="brand">
+        <img class="brand-mark" src="images/RecipeSyllabusLogo.png" alt="Recipe Syllabus">
+        <div class="brand-text">
+          <div class="brand-title">Recipe Syllabus</div>
+          <div class="brand-subtitle">Admin Dashboard</div>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <span id="adminEmail" class="muted"></span>
+        <button class="btn btn-small" id="logoutButton">Sign out</button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="topbar">
+      <div>
+        <h2>Admin Dashboard</h2>
+        <p>Orders, courier dispatch, products, images and stock.</p>
+      </div>
+      <div id="globalMessage" class="hidden"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="orders">Orders</button>
+      <button class="tab" data-tab="products">Products</button>
+    </div>
+
+    <!-- ORDERS -->
+    <section id="ordersTab" class="tab-panel">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Orders</h3>
+            <div class="summary" id="ordersSummary">Loading...</div>
+          </div>
+          <button class="btn btn-small" id="refreshOrders">Refresh</button>
+        </div>
+
+        <div class="filters">
+          <input id="orderSearch" type="search" placeholder="Search order number, customer, phone, product...">
+          <select id="orderFilter">
+            <option value="all">All orders</option>
+            <option value="paid">Paid</option>
+            <option value="ready_to_ship">Ready to ship</option>
+            <option value="packed">Packed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button class="btn" id="clearOrderFilters">Clear</button>
+        </div>
+
+        <div id="ordersMessage" class="hidden"></div>
+        <div id="ordersList" class="orders-list"></div>
+      </div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section id="productsTab" class="tab-panel hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Products</h3>
+            <div class="summary" id="productsSummary">Loading...</div>
+          </div>
+          <button class="btn btn-primary" id="newProductButton">+ New Product</button>
+        </div>
+        <div id="productsMessage" class="hidden"></div>
+        <div id="productsGrid" class="product-grid"></div>
+      </div>
+
+      <div id="editorPanel" class="panel hidden">
+        <div class="panel-head">
+          <div>
+            <h3 id="editorTitle">New Product</h3>
+            <div class="summary">Changes are saved directly to Supabase.</div>
+          </div>
+          <button class="btn btn-small" id="closeEditor">Close</button>
+        </div>
+
+        <form id="productForm">
+          <input type="hidden" id="productId">
+          <div class="editor">
+            <div class="editor-card">
+              <h4>Product details</h4>
+              <div class="form-grid">
+                <div class="field full">
+                  <label for="productName">Name</label>
+                  <input id="productName" required maxlength="200">
+                </div>
+                <div class="field full">
+                  <label for="productDescription">Description</label>
+                  <textarea id="productDescription"></textarea>
+                </div>
+                <div class="field">
+                  <label for="productPrice">Price (₹)</label>
+                  <input id="productPrice" type="number" min="0" step="0.01" required>
+                </div>
+                <div class="field">
+                  <label for="productStock">Stock quantity</label>
+                  <input id="productStock" type="number" min="0" step="1" required>
+                </div>
+                <div class="field">
+                  <label for="productActive">Store status</label>
+                  <select id="productActive">
+                    <option value="true">Active — visible in Shop</option>
+                    <option value="false">Inactive — hidden from Shop</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="productImage">Product image</label>
+                  <input id="productImage" type="file" accept="image/png,image/jpeg,image/webp">
+                </div>
+              </div>
+              <div class="editor-actions">
+                <button type="button" class="btn" id="cancelProduct">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveProduct">Save product</button>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <h4>Image preview</h4>
+              <div class="preview" id="imagePreview"><span class="muted">No image selected</span></div>
+              <p class="muted" style="font-size:.85rem;line-height:1.45;margin-top:10px;">
+                Current products use the public <code>product-images</code> bucket. A new upload will replace the product's main <code>image_url</code>.
+              </p>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+</section>
+
+<script>
+  const SUPABASE_URL = "https://nuipcuxyebsvnlxucjfk.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_S5U1KWrJEGYccqpmMXgTKw_g9YWevf2";
+
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  const state = {
+    orders: [],
+    customers: [],
+    orderItems: [],
+    products: [],
+    payments: [],
+    activeTab: "orders",
+    editingProductId: null,
+    currentImageUrl: null
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function money(value) {
+    return "₹" + Number(value || 0).toFixed(2);
+  }
+
+  function dateTime(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleString();
+  }
+
+  function showMessage(target, text, type = "info") {
+    target.className = "message message-" + type;
+    target.textContent = text;
+    target.classList.remove("hidden");
+  }
+
+  function hideMessage(target) {
+    target.classList.add("hidden");
+  }
+
+  function getCustomer(order) {
+    return state.customers.find(c => c.id === order.customer_id) || {};
+  }
+
+  function getItems(orderId) {
+    return state.orderItems.filter(i => i.order_id === orderId);
+  }
+
+  function getProduct(productId) {
+    return state.products.find(p => p.id === productId) || {};
+  }
+
+  function getPayment(orderId) {
+    return state.payments.find(p => p.order_id === orderId) || {};
+  }
+
+  function fulfillmentLabel(value) {
+    const map = {
+      ready_to_ship: "Ready to ship",
+      packed: "Packed",
+      shipped: "Shipped",
+      delivered: "Delivered"
+    };
+    return map[value] || value || "—";
+  }
+
+  function statusClass(value) {
+    return {
+      ready_to_ship: "status-ready",
+      packed: "status-packed",
+      shipped: "status-shipped",
+      delivered: "status-delivered",
+      paid: "status-paid",
+      cancelled: "status-cancelled"
+    }[value] || "";
+  }
+
+  async function ensureAdmin() {
+    const { data: { user }, error } = await db.auth.getUser();
+    if (error || !user) return null;
+
+    const { data: admin, error: adminError } = await db.rpc("is_admin");
+    if (adminError || admin !== true) {
+      await db.auth.signOut();
+      throw new Error("This account is not authorized for the Admin Dashboard.");
+    }
+
+    return user;
+  }
+
+  function showApp(user) {
+    $("authScreen").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    $("adminEmail").textContent = user.email || "";
+  }
+
+  async function signIn(email, password) {
+    const button = $("loginButton");
+    button.disabled = true;
+    button.textContent = "Signing in...";
+    hideMessage($("authMessage"));
+
+    try {
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      const user = await ensureAdmin();
+      if (!user) throw new Error("Authentication failed.");
+      showApp(user);
+      await Promise.all([loadOrders(), loadProducts()]);
+    } catch (error) {
+      showMessage($("authMessage"), error.message || "Unable to sign in.", "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = "Sign in";
+    }
+  }
+
+  async function loadOrders() {
+    const ordersMessage = $("ordersMessage");
+    showMessage(ordersMessage, "Loading orders...", "info");
+
+    const [ordersRes, customersRes, itemsRes, productsRes, paymentsRes] = await Promise.all([
+      db.from("orders").select("*").order("created_at", { ascending: false }),
+      db.from("customers").select("*"),
+      db.from("order_items").select("*"),
+      db.from("products").select("*"),
+      db.from("payments").select("*")
+    ]);
+
+    const firstError = [ordersRes, customersRes, itemsRes, productsRes, paymentsRes]
+      .find(r => r.error)?.error;
+    if (firstError) {
+      showMessage(ordersMessage, firstError.message || "Unable to load order data.", "error");
+      return;
+    }
+
+    state.orders = ordersRes.data || [];
+    state.customers = customersRes.data || [];
+    state.orderItems = itemsRes.data || [];
+    state.products = productsRes.data || [];
+    state.payments = paymentsRes.data || [];
+
+    hideMessage(ordersMessage);
+    renderOrders();
+  }
+
+  function orderMatches(order, query) {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    const customer = getCustomer(order);
+    const items = getItems(order);
+    const productText = items.map(i => getProduct(i.product_id).name || "").join(" ");
+    const haystack = [
+      order.order_number,
+      customer.name,
+      customer.phone,
+      customer.email,
+      customer.address,
+      customer.city,
+      customer.state,
+      customer.pincode,
+      productText,
+      order.courier_name,
+      order.tracking_number
+    ].join(" ").toLowerCase();
+    return haystack.includes(q);
+  }
+
+  function renderOrders() {
+    const query = $("orderSearch").value.trim();
+    const filter = $("orderFilter").value;
+
+    let rows = state.orders.filter(o => {
+      if (!orderMatches(o, query)) return false;
+      if (filter === "all") return true;
+      if (filter === "paid") return o.payment_status === "paid";
+      if (filter === "cancelled") return o.payment_status === "cancelled" || o.status === "cancelled";
+      return o.fulfillment_status === filter;
+    });
+
+    const paidCount = state.orders.filter(o => o.payment_status === "paid").length;
+    const readyCount = state.orders.filter(o => o.payment_status === "paid" && o.fulfillment_status === "ready_to_ship").length;
+    $("ordersSummary").textContent = `${rows.length} shown · ${paidCount} paid · ${readyCount} ready to ship`;
+
+    if (!rows.length) {
+      $("ordersList").innerHTML = `<div class="empty">No orders match the current filter.</div>`;
+      return;
+    }
+
+    $("ordersList").innerHTML = rows.map(renderOrderCard).join("");
+  }
+
+  function renderOrderCard(order) {
+    const customer = getCustomer(order);
+    const items = getItems(order);
+    const payment = getPayment(order);
+    const isCancelled = order.payment_status === "cancelled" || order.status === "cancelled";
+    const canFulfill = order.payment_status === "paid" && !isCancelled;
+
+    const itemsHtml = items.length
+      ? items.map(i => {
+          const product = getProduct(i.product_id);
+          const qty = Number(i.quantity || 0);
+          return `<div class="item-row"><strong>${escapeHtml(product.name || "Product")}</strong> × ${qty}</div>`;
+        }).join("")
+      : `<div class="item-row muted">No item data</div>`;
+
+    const address = [customer.address, customer.city, customer.state, customer.pincode]
+      .filter(Boolean).map(escapeHtml).join(", ");
+
+    let actionButtons = "";
+    if (canFulfill) {
+      if (order.fulfillment_status === "ready_to_ship") {
+        actionButtons = `<button class="btn btn-small btn-primary" data-action="pack" data-id="${order.id}">Mark Packed</button>`;
+      } else if (order.fulfillment_status === "packed") {
+        actionButtons = `<button class="btn btn-small btn-primary" data-action="ship" data-id="${order.id}">Mark Shipped</button>`;
+      } else if (order.fulfillment_status === "shipped") {
+        actionButtons = `<button class="btn btn-small btn-success" data-action="deliver" data-id="${order.id}">Mark Delivered</button>`;
+      }
+    }
+
+    return `
+      <article class="order-card">
+        <div class="order-card-top">
+          <div>
+            <div class="order-no">${escapeHtml(order.order_number || `Order #${order.id}`)}</div>
+            <div class="order-time">${dateTime(order.created_at)}</div>
+          </div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;">
+            <span class="status ${statusClass(order.payment_status)}">Payment: ${escapeHtml(order.payment_status || "—")}</span>
+            <span class="status ${statusClass(order.fulfillment_status)}">${escapeHtml(fulfillmentLabel(order.fulfillment_status))}</span>
+          </div>
+        </div>
+
+        <div class="order-grid">
+          <div class="detail-box">
+            <div class="detail-label">Customer</div>
+            <div class="detail-value">${escapeHtml(customer.name || "—")}</div>
+            <div class="detail-value">${escapeHtml(customer.phone || "")}</div>
+            <div class="detail-value">${escapeHtml(customer.email || "")}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Delivery address</div>
+            <div class="detail-value">${address || "—"}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Items</div>
+            <div class="detail-value">${itemsHtml}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Payment</div>
+            <div class="detail-value"><strong>${money(order.total_amount)}</strong></div>
+            <div class="detail-value">Ref: ${escapeHtml(payment.payment_reference || order.razorpay_payment_id || "—")}</div>
+          </div>
+        </div>
+
+        <div class="order-footer">
+          <div class="courier-fields">
+            <div class="field">
+              <label>Courier</label>
+              <input data-field="courier_name" data-id="${order.id}" value="${escapeHtml(order.courier_name || "")}" placeholder="e.g. India Post">
+            </div>
+            <div class="field">
+              <label>Tracking number</label>
+              <input data-field="tracking_number" data-id="${order.id}" value="${escapeHtml(order.tracking_number || "")}" placeholder="Tracking / consignment no.">
+            </div>
+          </div>
+          <div class="order-actions">
+            <button class="btn btn-small" data-action="save-courier" data-id="${order.id}">Save courier</button>
+            ${actionButtons}
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function updateOrderFulfillment(orderId, updates) {
+    const { error } = await db.from("orders").update(updates).eq("id", orderId);
+    if (error) throw error;
+    await loadOrders();
+  }
+
+  async function handleOrderAction(action, orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    try {
+      if (action === "save-courier") {
+        const courier = document.querySelector(`[data-field="courier_name"][data-id="${orderId}"]`)?.value.trim() || null;
+        const tracking = document.querySelector(`[data-field="tracking_number"][data-id="${orderId}"]`)?.value.trim() || null;
+        await updateOrderFulfillment(orderId, {
+          courier_name: courier,
+          tracking_number: tracking
+        });
+        showMessage($("globalMessage"), "Courier details saved.", "success");
+      }
+
+      if (action === "pack") {
+        await updateOrderFulfillment(orderId, {
+          fulfillment_status: "packed",
+          packed_at: new Date().toISOString()
+        });
+        showMessage($("globalMessage"), "Order marked as packed.", "success");
+      }
+
+      if (action === "ship") {
+        await updateOrderFulfillment(orderId, {
+          fulfillment_status: "shipped",
+          shipped_at: new Date().toISOString()
+        });
+        showMessage($("globalMessage"), "Order marked as shipped.", "success");
+      }
+
+      if (action === "deliver") {
+        await updateOrderFulfillment(orderId, {
+          fulfillment_status: "delivered",
+          delivered_at: new Date().toISOString()
+        });
+        showMessage($("globalMessage"), "Order marked as delivered.", "success");
+      }
+    } catch (error) {
+      showMessage($("globalMessage"), error.message || "Unable to update order.", "error");
+    }
+  }
+
+  async function loadProducts() {
+    const productsMessage = $("productsMessage");
+    showMessage(productsMessage, "Loading products...", "info");
+
+    const { data, error } = await db
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      showMessage(productsMessage, error.message || "Unable to load products.", "error");
+      return;
+    }
+
+    state.products = data || [];
+    hideMessage(productsMessage);
+    renderProducts();
+  }
+
+  function renderProducts() {
+    const active = state.products.filter(p => p.is_active).length;
+    $("productsSummary").textContent = `${state.products.length} total · ${active} active`;
+
+    if (!state.products.length) {
+      $("productsGrid").innerHTML = `<div class="empty">No products yet.</div>`;
+      return;
+    }
+
+    $("productsGrid").innerHTML = state.products.map(product => {
+      const stock = Number(product.stock_quantity || 0);
+      const stockClass = stock <= 0 ? "stock-out" : (stock <= 5 ? "stock-low" : "");
+      return `
+        <article class="product-card">
+          <div class="product-image-wrap">
+            ${product.image_url
+              ? `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}">`
+              : `<div class="no-image">No image</div>`}
+          </div>
+          <div class="product-body">
+            <div class="product-row">
+              <div class="product-name">${escapeHtml(product.name)}</div>
+              <div class="product-price">${money(product.price)}</div>
+            </div>
+            <div class="product-desc">${escapeHtml(product.description || "")}</div>
+            <div class="stock-row">
+              <span class="stock-pill ${stockClass}">${stock <= 0 ? "Out of stock" : `${stock} in stock`}</span>
+              <span class="status">${product.is_active ? "Active" : "Inactive"}</span>
+            </div>
+            <div class="product-actions">
+              <button class="btn btn-small btn-primary" data-product-action="edit" data-id="${product.id}">Edit</button>
+              <button class="btn btn-small" data-product-action="toggle" data-id="${product.id}">${product.is_active ? "Hide" : "Show"}</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  function openProductEditor(productId = null) {
+    state.editingProductId = productId;
+    state.currentImageUrl = null;
+    $("productForm").reset();
+    $("productImage").value = "";
+    $("imagePreview").innerHTML = `<span class="muted">No image selected</span>`;
+
+    if (productId) {
+      const p = state.products.find(x => x.id === productId);
+      if (!p) return;
+      $("editorTitle").textContent = "Edit Product";
+      $("productId").value = p.id;
+      $("productName").value = p.name || "";
+      $("productDescription").value = p.description || "";
+      $("productPrice").value = p.price ?? "";
+      $("productStock").value = p.stock_quantity ?? 0;
+      $("productActive").value = String(Boolean(p.is_active));
+      state.currentImageUrl = p.image_url || null;
+      if (p.image_url) {
+        $("imagePreview").innerHTML = `<img src="${escapeHtml(p.image_url)}" alt="Current product image">`;
+      }
+    } else {
+      $("editorTitle").textContent = "New Product";
+      $("productActive").value = "true";
+    }
+
+    $("editorPanel").classList.remove("hidden");
+    $("editorPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function closeProductEditor() {
+    state.editingProductId = null;
+    state.currentImageUrl = null;
+    $("editorPanel").classList.add("hidden");
+  }
+
+  async function uploadProductImage(file) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+    const path = `products/${crypto.randomUUID()}-${safeName}`;
+
+    const { error: uploadError } = await db.storage
+      .from("product-images")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = db.storage
+      .from("product-images")
+      .getPublicUrl(path);
+
+    return data.publicUrl;
+  }
+
+  async function saveProduct(event) {
+    event.preventDefault();
+    const button = $("saveProduct");
+    button.disabled = true;
+    button.textContent = "Saving...";
+
+    try {
+      const name = $("productName").value.trim();
+      const description = $("productDescription").value.trim();
+      const price = Number($("productPrice").value);
+      const stock_quantity = Number($("productStock").value);
+      const is_active = $("productActive").value === "true";
+      const file = $("productImage").files[0] || null;
+
+      if (!name) throw new Error("Product name is required.");
+      if (!Number.isFinite(price) || price < 0) throw new Error("Enter a valid price.");
+      if (!Number.isInteger(stock_quantity) || stock_quantity < 0) throw new Error("Stock must be a whole number >= 0.");
+
+      let image_url = state.currentImageUrl;
+      if (file) {
+        image_url = await uploadProductImage(file);
+      }
+
+      const payload = {
+        name,
+        description,
+        price,
+        stock_quantity,
+        is_active,
+        image_url
+      };
+
+      if (state.editingProductId) {
+        const { error } = await db.from("products")
+          .update(payload)
+          .eq("id", state.editingProductId);
+        if (error) throw error;
+        showMessage($("globalMessage"), "Product updated successfully.", "success");
+      } else {
+        const { error } = await db.from("products").insert(payload);
+        if (error) throw error;
+        showMessage($("globalMessage"), "Product created successfully.", "success");
+      }
+
+      closeProductEditor();
+      await Promise.all([loadProducts(), loadOrders()]);
+    } catch (error) {
+      showMessage($("productsMessage"), error.message || "Unable to save product.", "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = "Save product";
+    }
+  }
+
+  async function toggleProduct(productId) {
+    const p = state.products.find(x => x.id === productId);
+    if (!p) return;
+    try {
+      const { error } = await db.from("products")
+        .update({ is_active: !p.is_active })
+        .eq("id", productId);
+      if (error) throw error;
+      showMessage($("globalMessage"), `${p.name} is now ${!p.is_active ? "active" : "inactive"}.`, "success");
+      await loadProducts();
+    } catch (error) {
+      showMessage($("globalMessage"), error.message || "Unable to change product status.", "error");
+    }
+  }
+
+  function setupEvents() {
+    $("loginForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      await signIn($("loginEmail").value.trim(), $("loginPassword").value);
+    });
+
+    $("logoutButton").addEventListener("click", async () => {
+      await db.auth.signOut();
+      location.reload();
+    });
+
+    document.querySelectorAll(".tab").forEach(button => {
+      button.addEventListener("click", () => {
+        const tab = button.dataset.tab;
+        state.activeTab = tab;
+        document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b === button));
+        $("ordersTab").classList.toggle("hidden", tab !== "orders");
+        $("productsTab").classList.toggle("hidden", tab !== "products");
+      });
+    });
+
+    $("refreshOrders").addEventListener("click", loadOrders);
+    $("orderSearch").addEventListener("input", renderOrders);
+    $("orderFilter").addEventListener("change", renderOrders);
+    $("clearOrderFilters").addEventListener("click", () => {
+      $("orderSearch").value = "";
+      $("orderFilter").value = "all";
+      renderOrders();
+    });
+
+    $("ordersList").addEventListener("click", async e => {
+      const button = e.target.closest("button[data-action]");
+      if (!button) return;
+      button.disabled = true;
+      await handleOrderAction(button.dataset.action, Number(button.dataset.id));
+      button.disabled = false;
+    });
+
+    $("newProductButton").addEventListener("click", () => openProductEditor());
+    $("closeEditor").addEventListener("click", closeProductEditor);
+    $("cancelProduct").addEventListener("click", closeProductEditor);
+    $("productForm").addEventListener("submit", saveProduct);
+
+    $("productImage").addEventListener("change", () => {
+      const file = $("productImage").files[0];
+      if (!file) {
+        if (state.currentImageUrl) {
+          $("imagePreview").innerHTML = `<img src="${escapeHtml(state.currentImageUrl)}" alt="Current image">`;
+        } else {
+          $("imagePreview").innerHTML = `<span class="muted">No image selected</span>`;
+        }
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      $("imagePreview").innerHTML = `<img src="${escapeHtml(url)}" alt="Selected image">`;
+    });
+
+    $("productsGrid").addEventListener("click", async e => {
+      const button = e.target.closest("button[data-product-action]");
+      if (!button) return;
+      const id = Number(button.dataset.id);
+      if (button.dataset.productAction === "edit") openProductEditor(id);
+      if (button.dataset.productAction === "toggle") await toggleProduct(id);
+    });
+  }
+
+  async function boot() {
+    setupEvents();
+
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) return;
+
+    try {
+      const user = await ensureAdmin();
+      if (!user) return;
+      showApp(user);
+      await Promise.all([loadOrders(), loadProducts()]);
+    } catch (error) {
+      await db.auth.signOut();
+      showMessage($("authMessage"), error.message || "Admin access denied.", "error");
+    }
+  }
+
+  db.auth.onAuthStateChange(async (event, session) => {
+    if (event === "SIGNED_OUT") {
+      $("app").classList.add("hidden");
+      $("authScreen").classList.remove("hidden");
+    }
+  });
+
+  boot();
+</script>
+</body>
+</html>
