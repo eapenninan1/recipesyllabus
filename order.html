@@ -319,33 +319,38 @@
     }
 
     quantityInput.addEventListener("input", updateSummary);
-
     document.getElementById("orderForm").addEventListener("submit", async function(e) {
       e.preventDefault();
-
+    
       if (!product) {
         showMessage("Product information is not available.", "error");
         return;
       }
-
+    
       const quantity = parseInt(quantityInput.value, 10);
-
+    
       if (!quantity || quantity < 1) {
         showMessage("Please enter a valid quantity.", "error");
         return;
       }
-
+    
       if (quantity > product.stock_quantity) {
-        showMessage("The requested quantity is greater than available stock.", "error");
+        showMessage(
+          "The requested quantity is greater than available stock.",
+          "error"
+        );
         return;
       }
-
+    
       const button = document.getElementById("continueButton");
+    
       button.disabled = true;
-      button.textContent = "Creating order...";
+      button.textContent = "Creating payment...";
+    
       message.className = "message";
       message.style.display = "none";
-
+    
+      // create-payment-order expects the complete order information
       const payload = {
         product_id: product.id,
         quantity: quantity,
@@ -357,149 +362,197 @@
         state: document.getElementById("state").value.trim(),
         pincode: document.getElementById("pincode").value.trim()
       };
-
+    
       try {
+    
+        // =====================================================
+        // CREATE RAZORPAY ORDER + LOCAL PENDING ORDER
+        // =====================================================
+    
         const response = await fetch(
-          `${SUPABASE_URL}/functions/v1/create-order`,
+          `${SUPABASE_URL}/functions/v1/create-payment-order`,
           {
             method: "POST",
+    
             headers: {
               "Content-Type": "application/json",
               "apikey": SUPABASE_PUBLISHABLE_KEY,
               "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
             },
+    
             body: JSON.stringify(payload)
           }
         );
-
+    
         const result = await response.json();
-
-if (!response.ok || !result.success) {
-  console.error("Create order error:", result);
-  throw new Error(result.error || "Unable to create order");
-}
-
-// Database order has been created.
-// Now create the Razorpay payment order.
-const paymentResponse = await fetch(
-  `${SUPABASE_URL}/functions/v1/create-payment-order`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "apikey": SUPABASE_PUBLISHABLE_KEY,
-      "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-    },
-    body: JSON.stringify({
-      product_id: product.id,
-      quantity: quantity
-    })
-  }
-);
-
-const paymentResult = await paymentResponse.json();
-
-console.log("create-payment-order:", paymentResult);
-
-if (!paymentResponse.ok) {
-  throw new Error(
-    paymentResult.error ||
-    "Unable to create Razorpay payment order"
-  );
-}
-
-const razorpayOrderId =
-  paymentResult.razorpay_order_id ||
-  paymentResult.order_id;
-
-const razorpayAmount =
-  paymentResult.amount;
-
-const razorpayCurrency =
-  paymentResult.currency || "INR";
-
-const razorpayKey =
-  paymentResult.key_id ||
-  paymentResult.razorpay_key_id;
-
-if (!razorpayOrderId) {
-  throw new Error("Razorpay order ID was not returned.");
-}
-
-if (!razorpayKey) {
-  throw new Error("Razorpay Key ID was not returned.");
-}
-
-// Open Razorpay Checkout
-const options = {
-  key: razorpayKey,
-  amount: Number(razorpayAmount),
-  currency: razorpayCurrency,
-  name: "Recipe Syllabus",
-  description: product.name,
-  order_id: razorpayOrderId,
-
-  prefill: {
-    name: document.getElementById("name").value.trim(),
-    email: document.getElementById("email").value.trim(),
-    contact: document.getElementById("phone").value.trim()
-  },
-
-  handler: async function(payment) {
-
-    console.log("Razorpay payment:", payment);
-
-    // Send payment details to verify-payment
-    const verifyResponse = await fetch(
-      `${SUPABASE_URL}/functions/v1/verify-payment`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": SUPABASE_PUBLISHABLE_KEY,
-          "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-        },
-        body: JSON.stringify({
-          order_id: result.order_id,
-          order_number: result.order_number,
-          razorpay_order_id: payment.razorpay_order_id,
-          razorpay_payment_id: payment.razorpay_payment_id,
-          razorpay_signature: payment.razorpay_signature
-        })
-      }
-    );
-
-      const verifyResult = await verifyResponse.json();
-  
-      console.log("verify-payment:", verifyResult);
-  
-      if (!verifyResponse.ok || !verifyResult.success) {
-        throw new Error(
-          verifyResult.error ||
-          "Payment verification failed"
+    
+        console.log("create-payment-order:", result);
+    
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.error ||
+            "Unable to create Razorpay payment order"
+          );
+        }
+    
+        // =====================================================
+        // RAZORPAY DATA
+        // =====================================================
+    
+        const razorpayOrderId =
+          result.razorpay_order_id;
+    
+        const razorpayAmount =
+          result.amount;
+    
+        const razorpayCurrency =
+          result.currency || "INR";
+    
+        const razorpayKey =
+          result.key_id;
+    
+        if (!razorpayOrderId) {
+          throw new Error(
+            "Razorpay order ID was not returned."
+          );
+        }
+    
+        if (!razorpayAmount) {
+          throw new Error(
+            "Razorpay amount was not returned."
+          );
+        }
+    
+        if (!razorpayKey) {
+          throw new Error(
+            "Razorpay Key ID was not returned."
+          );
+        }
+    
+        console.log(
+          "Razorpay order:",
+          razorpayOrderId
         );
-      }
-  
-      showMessage(
-        "Payment successful! Your order has been confirmed.",
-        "success"
-      );
-  
-      button.textContent = "Payment Successful";
-      button.disabled = true;
-    }
-  };
-  
-  const razorpay = new Razorpay(options);
-  
-  razorpay.open();
+    
+        console.log(
+          "Local order:",
+          result.local_order_id
+        );
+    
+        console.log(
+          "Order number:",
+          result.order_number
+        );
+    
+        // =====================================================
+        // OPEN RAZORPAY CHECKOUT
+        // =====================================================
+    
+        const options = {
+    
+          key: razorpayKey,
+    
+          amount: Number(razorpayAmount),
+    
+          currency: razorpayCurrency,
+    
+          name: "Recipe Syllabus",
+    
+          description: result.product_name,
+    
+          order_id: razorpayOrderId,
+    
+          prefill: {
+            name: document.getElementById("name").value.trim(),
+    
+            email: document.getElementById("email").value.trim(),
+    
+            contact: document.getElementById("phone").value.trim()
+          },
+    
+          theme: {
+            color: "#963434"
+          },
+    
+          handler: async function(payment) {
+    
+            console.log(
+              "Razorpay payment response:",
+              payment
+            );
+    
+            showMessage(
+              "Payment received. Verifying payment...",
+              "info"
+            );
+    
+            // VERIFY PAYMENT WILL BE CONNECTED IN THE NEXT STEP
+    
+          },
+    
+          modal: {
+            ondismiss: function() {
+    
+              button.disabled = false;
+    
+              button.textContent =
+                "Continue to Payment";
+    
+              showMessage(
+                "Payment window closed.",
+                "error"
+              );
+            }
+          }
+        };
+    
+        const razorpay =
+          new Razorpay(options);
+    
+        razorpay.on(
+          "payment.failed",
+          function(response) {
+    
+            console.error(
+              "Razorpay payment failed:",
+              response
+            );
+    
+            showMessage(
+              response.error?.description ||
+              "Payment failed. Please try again.",
+              "error"
+            );
+    
+            button.disabled = false;
+    
+            button.textContent =
+              "Continue to Payment";
+          }
+        );
+    
+        razorpay.open();
+    
       } catch (error) {
-        console.error("Order submission error:", error);
-        showMessage(error.message || "Unable to create order. Please try again.", "error");
+    
+        console.error(
+          "Order/payment error:",
+          error
+        );
+    
+        showMessage(
+          error.message ||
+          "Unable to continue to payment.",
+          "error"
+        );
+    
         button.disabled = false;
-        button.textContent = "Continue to Payment";
+    
+        button.textContent =
+          "Continue to Payment";
       }
     });
+   
 
     loadProduct();
   </script>
