@@ -391,8 +391,8 @@ const paymentResponse = await fetch(
       "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
     },
     body: JSON.stringify({
-      order_id: result.order_id,
-      order_number: result.order_number
+      product_id: product.id,
+      quantity: quantity
     })
   }
 );
