@@ -708,7 +708,7 @@ function getPayment(orderId) {
       customer.state,
       customer.pincode,
       productText,
-      order.courier_name,
+      order._name,
       order.tracking_number
     ].join(" ").toLowerCase();
     return haystack.includes(q);
@@ -776,7 +776,13 @@ function getPayment(orderId) {
           </div>
           <div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;">
             <span class="status ${statusClass(order.payment_status)}">Payment: ${escapeHtml(order.payment_status || "—")}</span>
-            <span class="status ${statusClass(order.fulfillment_status)}">${escapeHtml(fulfillmentLabel(order.fulfillment_status))}</span>
+            <span class="status ${statusClass(order.fulfillment_status)}">
+              ${escapeHtml(
+                isCancelled
+                  ? "Not for dispatch"
+                  : fulfillmentLabel(order.fulfillment_status)
+              )}
+            </span>
           </div>
         </div>
 
@@ -805,22 +811,46 @@ function getPayment(orderId) {
           </div>
         </div>
 
+        ${canFulfill ? `
         <div class="order-footer">
+      
           <div class="courier-fields">
+      
             <div class="field">
               <label>Courier</label>
-              <input data-field="courier_name" data-id="${order.id}" value="${escapeHtml(order.courier_name || "")}" placeholder="e.g. India Post">
+              <input
+                data-field="courier_name"
+                data-id="${order.id}"
+                value="${escapeHtml(order.courier_name || "")}"
+                placeholder="e.g. India Post">
             </div>
+      
             <div class="field">
               <label>Tracking number</label>
-              <input data-field="tracking_number" data-id="${order.id}" value="${escapeHtml(order.tracking_number || "")}" placeholder="Tracking / consignment no.">
+              <input
+                data-field="tracking_number"
+                data-id="${order.id}"
+                value="${escapeHtml(order.tracking_number || "")}"
+                placeholder="Tracking / consignment no.">
             </div>
+      
           </div>
+      
           <div class="order-actions">
-            <button class="btn btn-small" data-action="save-courier" data-id="${order.id}">Save courier</button>
+      
+            <button
+              class="btn btn-small"
+              data-action="save-courier"
+              data-id="${order.id}">
+              Save courier
+            </button>
+      
             ${actionButtons}
+      
           </div>
+      
         </div>
+      ` : ""}
       </article>
     `;
   }
