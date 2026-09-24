@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Your Order — Recipe Syllabus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <script src="site-config.js"></script>
+  <style>
+    :root {
+      --paper:#f7f1e2; --header:#fbf7ed; --ink:#24322b; --muted:#657168;
+      --line:#d9d0bf; --accent:#8b2f2f; --accent-dark:#6f2323; --gold:#c99b42;
+      --success:#2f6f4e; --white:#fffdf8; --danger:#9b3434;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:"Karla",Arial,sans-serif}
+    button,input{font:inherit}
+    header.site{background:rgba(247,241,226,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+    nav{max-width:1100px;margin:0 auto;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+    .brand img{width:48px;height:48px;object-fit:contain}
+    .brand-title{font-family:"Newsreader",Georgia,serif;font-size:1.2rem;font-weight:500}
+    .brand-subtitle{color:var(--muted);font-size:.8rem;margin-top:2px}
+    .nav-links{display:flex;gap:18px;flex-wrap:wrap}
+    .nav-links a{color:var(--ink);text-decoration:none}
+    .nav-links a:hover{color:var(--accent)}
+    main{max-width:800px;margin:0 auto;padding:54px 20px 80px}
+    .card{background:var(--header);border:1px solid var(--line);padding:28px}
+    h1{margin:0 0 8px;font-family:"Newsreader",Georgia,serif;font-size:clamp(2rem,5vw,3rem);font-weight:500}
+    .intro{margin:0 0 26px;color:var(--muted);line-height:1.55}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field{display:grid;gap:6px}
+    .field label{font-size:.85rem;color:var(--muted);font-weight:700}
+    input{width:100%;border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:6px;padding:12px}
+    input:focus{outline:none;border-color:var(--gold)}
+    button{border:1px solid var(--accent);background:var(--accent);color:white;border-radius:6px;padding:12px 16px;font-weight:700;cursor:pointer;margin-top:14px}
+    button:hover{background:var(--accent-dark)}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .message{margin-top:16px;padding:11px 13px;border-radius:6px;display:none}
+    .message.error{display:block;background:#f8e7e7;color:#792727;border:1px solid #e2bcbc}
+    .message.info{display:block;background:#eef1ee;color:var(--ink);border:1px solid var(--line)}
+    .result{margin-top:24px;border-top:1px solid var(--line);padding-top:24px;display:none}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap;margin-bottom:18px}
+    .order-no{font-weight:800;font-size:1.1rem;word-break:break-word}
+    .badge{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:.78rem;font-weight:800;background:#e1efe5;color:#23543b;border:1px solid #b9d3c0}
+    .badge.cancelled{background:#f5dfdf;color:#7c2525;border-color:#e2bcbc}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:24px 0}
+    .step{border:1px solid var(--line);background:var(--white);padding:12px 8px;text-align:center;font-size:.82rem;color:var(--muted)}
+    .step.active{border-color:#b9d3c0;background:#e6f2e9;color:#245a3b;font-weight:700}
+    .step.current{border-color:#dec99a;background:#f4ead2;color:#76531a;font-weight:700}
+    .details{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .detail{border-top:1px solid var(--line);padding-top:10px}
+    .label{color:var(--muted);font-size:.78rem;font-weight:700;margin-bottom:4px}
+    .value{line-height:1.45;word-break:break-word}
+    .items{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+    .item{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+    .muted{color:var(--muted)}
+    footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;color:var(--muted);font-size:.85rem}
+    @media(max-width:650px){
+      nav{padding:12px 14px}.nav-links{gap:12px;font-size:.9rem}
+      main{padding:36px 14px 60px}.card{padding:22px}.form-grid,.details{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <nav>
+      <a class="brand" href="index.html">
+        <img src="images/RecipeSyllabusLogo.png" alt="Recipe Syllabus">
+        <div><div class="brand-title">Recipe Syllabus</div><div class="brand-subtitle">Homemade Products</div></div>
+      </a>
+      <div class="nav-links">
+        <a href="shop.html">Shop</a>
+        <a href="index.html#about">About</a>
+        <a href="index.html#contact">Contact</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h1>Track Your Order</h1>
+      <p class="intro">Enter your order number and the email address used when placing the order.</p>
+
+      <form id="trackForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="orderNumber">Order Number</label>
+            <input id="orderNumber" autocomplete="off" placeholder="e.g. RS-20260924..." required>
+          </div>
+          <div class="field">
+            <label for="email">Email Address</label>
+            <input id="email" type="email" autocomplete="email" placeholder="your@email.com" required>
+          </div>
+        </div>
+        <button id="trackButton" type="submit">Track Order</button>
+      </form>
+
+      <div id="message" class="message"></div>
+
+      <div id="result" class="result">
+        <div class="top">
+          <div>
+            <div class="muted">Order Number</div>
+            <div class="order-no" id="resultOrderNumber">—</div>
+          </div>
+          <span id="statusBadge" class="badge">—</span>
+        </div>
+
+        <div id="steps" class="steps"></div>
+
+        <div class="details">
+          <div class="detail"><div class="label">Customer</div><div class="value" id="customerName">—</div></div>
+          <div class="detail"><div class="label">Amount Paid</div><div class="value" id="amountPaid">—</div></div>
+          <div class="detail"><div class="label">Courier</div><div class="value" id="courier">Not assigned yet</div></div>
+          <div class="detail"><div class="label">Tracking Number</div><div class="value" id="tracking">Not available yet</div></div>
+          <div class="detail"><div class="label">Shipped</div><div class="value" id="shippedAt">—</div></div>
+          <div class="detail"><div class="label">Delivered</div><div class="value" id="deliveredAt">—</div></div>
+          <div class="detail" style="grid-column:1/-1"><div class="label">Delivery Address</div><div class="value" id="address">—</div></div>
+        </div>
+
+        <div class="items">
+          <div class="label">Items</div>
+          <div id="itemsList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>© 2026 Recipe Syllabus</footer>
+
+  <script>
+    const TRACK_FUNCTION = "https://nuipcuxyebsvnlxucjfk.supabase.co/functions/v1/track-order";
+
+    const form = document.getElementById("trackForm");
+    const button = document.getElementById("trackButton");
+    const message = document.getElementById("message");
+    const result = document.getElementById("result");
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function money(value) { return "₹" + Number(value || 0).toFixed(2); }
+    function dateTime(value) {
+      if (!value) return "—";
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString();
+    }
+
+    function showMessage(text, type = "error") {
+      message.textContent = text;
+      message.className = "message " + type;
+    }
+
+    function renderSteps(status, cancelled) {
+      const labels = [
+        ["paid", "Order confirmed"],
+        ["packed", "Packed"],
+        ["shipped", "Shipped"],
+        ["delivered", "Delivered"]
+      ];
+      const order = { ready_to_ship: 0, packed: 1, shipped: 2, delivered: 3 };
+      const current = order[status] ?? -1;
+      document.getElementById("steps").innerHTML = labels.map((item, index) => {
+        let cls = "step";
+        if (!cancelled && index < current) cls += " active";
+        if (!cancelled && index === current) cls += " current";
+        if (!cancelled && status === "paid" && index === 0) cls += " current";
+        if (cancelled && index === 0) cls += " current";
+        return `<div class="${cls}">${item[1]}</div>`;
+      }).join("");
+    }
+
+    function renderOrder(data) {
+      const order = data.order;
+      const customer = data.customer || {};
+      const items = data.items || [];
+      const cancelled = order.payment_status === "cancelled" || order.status === "cancelled";
+
+      document.getElementById("resultOrderNumber").textContent = order.order_number || "—";
+      const badge = document.getElementById("statusBadge");
+      badge.textContent = cancelled ? "Payment cancelled" : (order.fulfillment_status || "Paid");
+      badge.className = "badge" + (cancelled ? " cancelled" : "");
+
+      renderSteps(order.fulfillment_status, cancelled);
+
+      document.getElementById("customerName").textContent = customer.name || "—";
+      document.getElementById("amountPaid").textContent = order.payment_status === "paid" ? money(order.total_amount) : "—";
+      document.getElementById("courier").textContent = order.courier_name || "Not assigned yet";
+      document.getElementById("tracking").textContent = order.tracking_number || "Not available yet";
+      document.getElementById("shippedAt").textContent = dateTime(order.shipped_at);
+      document.getElementById("deliveredAt").textContent = dateTime(order.delivered_at);
+      document.getElementById("address").textContent = [customer.address, customer.city, customer.state, customer.pincode].filter(Boolean).join(", ") || "—";
+
+      document.getElementById("itemsList").innerHTML = items.length
+        ? items.map(item => `<div class="item"><span>${escapeHtml(item.product_name || "Product")}</span><strong>× ${Number(item.quantity || 0)}</strong></div>`).join("")
+        : `<div class="muted">No item information available.</div>`;
+
+      result.style.display = "block";
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      result.style.display = "none";
+      showMessage("Looking up your order...", "info");
+      button.disabled = true;
+      button.textContent = "Checking...";
+
+      try {
+        const orderNumber = document.getElementById("orderNumber").value.trim();
+        const email = document.getElementById("email").value.trim();
+
+        const response = await fetch(TRACK_FUNCTION, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order_number: orderNumber, email })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Order not found.");
+        }
+
+        message.className = "message";
+        message.style.display = "none";
+        renderOrder(data);
+      } catch (error) {
+        showMessage(error.message || "Unable to find this order.", "error");
+      } finally {
+        button.disabled = false;
+        button.textContent = "Track Order";
+      }
+    });
+  </script>
+</body>
+</html>
