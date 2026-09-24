@@ -42,6 +42,9 @@
 
   body {
     margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background:
       radial-gradient(circle at 15% 10%, rgba(232,163,61,0.08), transparent 28%),
       linear-gradient(180deg, #E3E6D8 0%, #EDEFE6 45%, #EDEFE6 100%);
@@ -205,6 +208,8 @@
 
   /* MAIN */
   .container {
+    flex: 1;
+    width: 100%;
     max-width: 1120px;
     margin: 0 auto;
     padding: 64px 24px 78px;
