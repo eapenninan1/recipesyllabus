@@ -543,8 +543,9 @@
     // The next step will replace this with the customer
     // order form and Supabase order creation.
 
-    window.location.href =
-      "order.html?product_id=" + encodeURIComponent(productId);
+    window.location.href = window.siteUrl(
+      "order.html?product_id=" + encodeURIComponent(productId)
+    );
   }
 
 
