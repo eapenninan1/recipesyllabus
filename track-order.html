@@ -217,7 +217,17 @@
 
       document.getElementById("resultOrderNumber").textContent = order.order_number || "—";
       const badge = document.getElementById("statusBadge");
-      badge.textContent = cancelled ? "Payment cancelled" : (order.fulfillment_status || "Paid");
+      const fulfillmentLabels = {
+        ready_to_ship: "Ready to ship",
+        packed: "Packed",
+        shipped: "Shipped",
+        delivered: "Delivered"
+      };
+      
+      badge.textContent = cancelled
+        ? "Payment cancelled"
+        : (fulfillmentLabels[order.fulfillment_status] || "Paid");
+      
       badge.className = "badge" + (cancelled ? " cancelled" : "");
 
       renderSteps(order.fulfillment_status, cancelled);
