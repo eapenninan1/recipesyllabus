@@ -35,9 +35,31 @@
     .field label{font-size:.85rem;color:var(--muted);font-weight:700}
     input{width:100%;border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:6px;padding:12px}
     input:focus{outline:none;border-color:var(--gold)}
-    button{border:1px solid var(--accent);background:var(--accent);color:white;border-radius:6px;padding:12px 16px;font-weight:700;cursor:pointer;margin-top:14px}
-    button:hover{background:var(--accent-dark)}
-    button:disabled{opacity:.6;cursor:not-allowed}
+    button{
+      width:100%;
+      border:0;
+      background:#F0C860;
+      color:#1B2621;
+      border-radius:2px;
+      padding:14px 20px;
+      font-family:"Karla",Arial,sans-serif;
+      font-size:.95rem;
+      font-weight:500;
+      cursor:pointer;
+      margin-top:18px;
+      transition:background .2s ease,color .2s ease
+    }
+    
+    button:hover{
+      background:#EDEFE6;
+      color:#22302A
+    }
+    
+    button:disabled{
+      background:#A7AEA7;
+      color:#EDEFE6;
+      cursor:not-allowed
+    }
     .message{margin-top:16px;padding:11px 13px;border-radius:6px;display:none}
     .message.error{display:block;background:#f8e7e7;color:#792727;border:1px solid #e2bcbc}
     .message.info{display:block;background:#eef1ee;color:var(--ink);border:1px solid var(--line)}
