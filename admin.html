@@ -764,7 +764,12 @@ function getPayment(orderId) {
       } else if (order.fulfillment_status === "packed") {
         actionButtons = `<button class="btn btn-small btn-primary" data-action="ship" data-id="${order.id}">Mark Shipped</button>`;
       } else if (order.fulfillment_status === "shipped") {
-        actionButtons = `<button class="btn btn-small btn-success" data-action="deliver" data-id="${order.id}">Mark Delivered</button>`;
+        actionButtons = `
+          <button class="btn btn-small" data-action="send-shipping-email" data-id="${order.id}">
+            ${order.shipment_email_sent_at ? "Resend Shipping Email" : "Send Shipping Email"}
+          </button>
+          <button class="btn btn-small btn-success" data-action="deliver" data-id="${order.id}">Mark Delivered</button>
+        `;
       }
     }
 
@@ -862,6 +867,39 @@ function getPayment(orderId) {
     await loadOrders();
   }
 
+  async function sendShipmentEmail(orderId) {
+    const { data: sessionData, error: sessionError } = await db.auth.getSession();
+    if (sessionError) throw sessionError;
+
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) {
+      throw new Error("Admin session has expired. Please sign in again.");
+    }
+
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/send-shipment-email`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_PUBLISHABLE_KEY,
+          "Authorization": `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ order_id: orderId })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || "Unable to send shipment email."
+      );
+    }
+
+    return result;
+  }
+
   async function handleOrderAction(action, orderId) {
     const order = state.orders.find(o => o.id === orderId);
     if (!order) return;
@@ -886,11 +924,58 @@ function getPayment(orderId) {
       }
 
       if (action === "ship") {
+        const courier = document.querySelector(
+          `[data-field="courier_name"][data-id="${orderId}"]`
+        )?.value.trim() || "";
+
+        const tracking = document.querySelector(
+          `[data-field="tracking_number"][data-id="${orderId}"]`
+        )?.value.trim() || "";
+
+        if (!courier) {
+          throw new Error(
+            "Enter the courier name before marking the order as shipped."
+          );
+        }
+
+        if (!tracking) {
+          throw new Error(
+            "Enter the tracking number before marking the order as shipped."
+          );
+        }
+
         await updateOrderFulfillment(orderId, {
+          courier_name: courier,
+          tracking_number: tracking,
           fulfillment_status: "shipped",
           shipped_at: new Date().toISOString()
         });
-        showMessage($("globalMessage"), "Order marked as shipped.", "success");
+
+        try {
+          await sendShipmentEmail(orderId);
+          showMessage(
+            $("globalMessage"),
+            "Order shipped and customer email sent.",
+            "success"
+          );
+        } catch (emailError) {
+          console.error("Shipment email error:", emailError);
+          showMessage(
+            $("globalMessage"),
+            `Order marked as shipped, but email could not be sent: ${emailError.message || "Unknown error"}`,
+            "error"
+          );
+        }
+      }
+
+      if (action === "send-shipping-email") {
+        await sendShipmentEmail(orderId);
+        showMessage(
+          $("globalMessage"),
+          "Shipping email sent to the customer.",
+          "success"
+        );
+        await loadOrders();
       }
 
       if (action === "deliver") {
