@@ -396,6 +396,41 @@
     }
 
     /* =========================
+       FOOTER — MATCH INDEX.HTML
+       ========================= */
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 30px 24px;
+      font-size: 0.85rem;
+      color: #657168;
+      background: var(--paper);
+    }
+
+    footer .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    footer .policy-links {
+      max-width: 1120px;
+      margin: 14px auto 0;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    footer a {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* =========================
        MOBILE
        ========================= */
   
@@ -677,8 +712,12 @@
     </div>
   </main>
   <footer>
-   Copyright © 2026 Recipe Syllabus
-    <div style="margin-top:10px;">
+    <div class="wrap">
+      <span>© 2026 Recipe Syllabus</span>
+      <span>Pathanamthitta, Kerala</span>
+    </div>
+
+    <div class="policy-links">
       <a href="shipping-policy.html">Shipping Policy</a> ·
       <a href="cancellation-refund-policy.html">Cancellation & Refund</a> ·
       <a href="privacy-policy.html">Privacy Policy</a> ·
