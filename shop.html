@@ -527,14 +527,25 @@
     const message = document.getElementById("message");
     const productsContainer = document.getElementById("products");
 
-    const { data, error } = await db
-      .from("products")
-      .select("*")
-      .eq("is_active", true)
-      .order("created_at", { ascending: false });
+    const [productsRes, imagesRes] = await Promise.all([
+      db
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false }),
 
-    if (error) {
-      console.error(error);
+      db
+        .from("product_images")
+        .select("id, product_id, image_url, sort_order")
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true })
+    ]);
+
+    if (productsRes.error || imagesRes.error) {
+      console.error(
+        "Product loading error:",
+        productsRes.error || imagesRes.error
+      );
 
       message.textContent =
         "Unable to load products. Please try again later.";
@@ -542,9 +553,12 @@
       return;
     }
 
+    const products = productsRes.data || [];
+    const images = imagesRes.data || [];
+
     message.style.display = "none";
 
-    if (!data || data.length === 0) {
+    if (products.length === 0) {
       message.style.display = "block";
       message.textContent = "No products available at the moment.";
       return;
@@ -552,14 +566,27 @@
 
     productsContainer.innerHTML = "";
 
-    data.forEach(product => {
+    products.forEach(product => {
 
       const card = document.createElement("div");
       card.className = "product-card";
 
-      const image = product.image_url
+      const productImages = images
+        .filter(image => String(image.product_id) === String(product.id))
+        .sort((a, b) => {
+          const sortDiff =
+            Number(a.sort_order || 0) - Number(b.sort_order || 0);
+
+          if (sortDiff !== 0) return sortDiff;
+
+          return Number(a.id) - Number(b.id);
+        });
+
+      const primaryImage = productImages[0] || null;
+
+      const image = primaryImage?.image_url
         ? `<img class="product-image"
-                src="${escapeHtml(product.image_url)}"
+                src="${escapeHtml(primaryImage.image_url)}"
                 alt="${escapeHtml(product.name)}">`
         : `<div class="product-image"
                 style="display:flex;align-items:center;justify-content:center;">
