@@ -432,6 +432,12 @@
     menuToggle.setAttribute("aria-expanded", isOpen);
   });
 
+  document.addEventListener("pointerdown", event => {
+    if (!mainNav.classList.contains("open") || mainNav.contains(event.target)) return;
+    mainNav.classList.remove("open");
+    menuToggle.setAttribute("aria-expanded", "false");
+  });
+
   mainNav.querySelectorAll(".nav-links a").forEach(link => {
     link.addEventListener("click", () => {
       mainNav.classList.remove("open");
