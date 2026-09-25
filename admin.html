@@ -221,6 +221,8 @@
     .status-delivered { background: #dfeee4; color: #2e6647; border-color: #bad5c3; }
 
     .orders-list { display: grid; gap: 14px; }
+    .pagination { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:18px; }
+    .pagination-info { color:var(--muted); font-size:.9rem; }
     .order-card {
       border: 1px solid var(--line);
       background: var(--white);
@@ -460,6 +462,7 @@
 
         <div id="ordersMessage" class="hidden"></div>
         <div id="ordersList" class="orders-list"></div>
+        <div id="ordersPagination" class="pagination" aria-label="Orders pages"></div>
       </div>
     </section>
 
@@ -475,6 +478,7 @@
         </div>
         <div id="productsMessage" class="hidden"></div>
         <div id="productsGrid" class="product-grid"></div>
+        <div id="productsPagination" class="pagination" aria-label="Product pages"></div>
       </div>
 
       <div id="editorPanel" class="panel hidden">
@@ -566,6 +570,8 @@
     products: [],
     productImages: [],
     payments: [],
+    ordersPage: 1,
+    productsPage: 1,
     activeTab: "orders",
     editingProductId: null
   };
@@ -797,10 +803,31 @@ function getPayment(orderId) {
 
     if (!rows.length) {
       $("ordersList").innerHTML = `<div class="empty">No orders match the current filter.</div>`;
+      renderPagination("ordersPagination", 0, state.ordersPage, "ordersPage");
       return;
     }
 
-    $("ordersList").innerHTML = rows.map(renderOrderCard).join("");
+    const pageCount = Math.ceil(rows.length / 10);
+    state.ordersPage = Math.min(state.ordersPage, pageCount);
+    const start = (state.ordersPage - 1) * 10;
+    $("ordersList").innerHTML = rows.slice(start, start + 10).map(renderOrderCard).join("");
+    renderPagination("ordersPagination", rows.length, state.ordersPage, "ordersPage");
+  }
+
+  function renderPagination(containerId, total, page, stateKey) {
+    const container = $(containerId);
+    const pageCount = Math.ceil(total / 10);
+    if (pageCount <= 1) {
+      container.innerHTML = "";
+      return;
+    }
+    const firstItem = (page - 1) * 10 + 1;
+    const lastItem = Math.min(page * 10, total);
+    container.innerHTML = `
+      <button class="btn btn-small" data-page-target="${stateKey}" data-page="${page - 1}" ${page === 1 ? "disabled" : ""}>Previous</button>
+      <span class="pagination-info">${firstItem}–${lastItem} of ${total} · Page ${page} of ${pageCount}</span>
+      <button class="btn btn-small" data-page-target="${stateKey}" data-page="${page + 1}" ${page === pageCount ? "disabled" : ""}>Next</button>
+    `;
   }
 
   function renderOrderCard(order) {
@@ -1161,10 +1188,14 @@ function getPayment(orderId) {
 
     if (!state.products.length) {
       $("productsGrid").innerHTML = `<div class="empty">No products yet.</div>`;
+      renderPagination("productsPagination", 0, state.productsPage, "productsPage");
       return;
     }
 
-    $("productsGrid").innerHTML = state.products.map(product => {
+    const pageCount = Math.ceil(state.products.length / 10);
+    state.productsPage = Math.min(state.productsPage, pageCount);
+    const start = (state.productsPage - 1) * 10;
+    $("productsGrid").innerHTML = state.products.slice(start, start + 10).map(product => {
       const stock = Number(product.stock_quantity || 0);
       const stockClass = stock <= 0 ? "stock-out" : (stock <= 5 ? "stock-low" : "");
       return `
@@ -1204,6 +1235,7 @@ function getPayment(orderId) {
         </article>
       `;
     }).join("");
+    renderPagination("productsPagination", state.products.length, state.productsPage, "productsPage");
   }
 
   async function deleteProductImage(imageId) {
@@ -1484,12 +1516,21 @@ function getPayment(orderId) {
     });
 
     $("refreshOrders").addEventListener("click", loadOrders);
-    $("orderSearch").addEventListener("input", renderOrders);
-    $("orderFilter").addEventListener("change", renderOrders);
+    $("orderSearch").addEventListener("input", () => { state.ordersPage = 1; renderOrders(); });
+    $("orderFilter").addEventListener("change", () => { state.ordersPage = 1; renderOrders(); });
     $("clearOrderFilters").addEventListener("click", () => {
       $("orderSearch").value = "";
       $("orderFilter").value = "all";
+      state.ordersPage = 1;
       renderOrders();
+    });
+
+    document.addEventListener("click", e => {
+      const button = e.target.closest("button[data-page-target]");
+      if (!button || button.disabled) return;
+      state[button.dataset.pageTarget] = Number(button.dataset.page);
+      if (button.dataset.pageTarget === "ordersPage") renderOrders();
+      else renderProducts();
     });
 
     $("ordersList").addEventListener("click", async e => {
