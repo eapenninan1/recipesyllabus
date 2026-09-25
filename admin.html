@@ -447,7 +447,7 @@
         </div>
 
         <div class="filters">
-          <input id="orderSearch" type="search" placeholder="Search order number, customer, phone, product...">
+          <input id="orderSearch" type="search" placeholder="Search order number, courier, tracking...">
           <select id="orderFilter">
             <option value="all">All orders</option>
             <option value="paid">Paid</option>
@@ -571,6 +571,7 @@
     productImages: [],
     payments: [],
     ordersPage: 1,
+    ordersTotal: 0,
     productsPage: 1,
     activeTab: "orders",
     editingProductId: null
@@ -711,30 +712,48 @@ function getPayment(orderId) {
     showMessage(ordersMessage, "Loading orders...", "info");
 
     try {
-      // Load the base records first.
-      const [ordersRes, customersRes, productsRes, paymentsRes] = await Promise.all([
-        db.from("orders").select("*").order("created_at", { ascending: false }),
-        db.from("customers").select("*"),
-        db.from("products").select("*"),
-        db.from("payments").select("*")
-      ]);
+      const filter = $("orderFilter").value;
+      const search = $("orderSearch").value.trim().replace(/[,%()]/g, " ").replace(/\s+/g, " ");
+      let query = db.from("orders").select("*", { count: "exact" });
 
-      const firstError = [ordersRes, customersRes, productsRes, paymentsRes]
-        .find(r => r.error)?.error;
-      if (firstError) throw firstError;
+      if (filter === "paid") query = query.eq("payment_status", "paid");
+      else if (filter === "cancelled") query = query.or("payment_status.eq.cancelled,status.eq.cancelled");
+      else if (filter !== "all") query = query.eq("fulfillment_status", filter);
+
+      if (search) {
+        const pattern = `%${search}%`;
+        query = query.or(`order_number.ilike.${pattern},courier_name.ilike.${pattern},tracking_number.ilike.${pattern}`);
+      }
+
+      const from = (state.ordersPage - 1) * 10;
+      const ordersRes = await query
+        .order("created_at", { ascending: false })
+        .range(from, from + 9);
+      if (ordersRes.error) throw ordersRes.error;
+
+      const totalOrders = ordersRes.count || 0;
+      const lastPage = Math.max(1, Math.ceil(totalOrders / 10));
+      if (state.ordersPage > lastPage) {
+        state.ordersPage = lastPage;
+        await loadOrders();
+        return;
+      }
 
       state.orders = ordersRes.data || [];
+      state.ordersTotal = totalOrders;
+      const orderIds = state.orders.map(order => order.id);
+      const customerIds = [...new Set(state.orders.map(order => order.customer_id).filter(Boolean))];
+      const [customersRes, itemsRes, paymentsRes, productsRes] = await Promise.all([
+        customerIds.length ? db.from("customers").select("*").in("id", customerIds) : Promise.resolve({ data: [], error: null }),
+        orderIds.length ? db.from("order_items").select("id, order_id, product_id, quantity").in("order_id", orderIds).order("id", { ascending: true }) : Promise.resolve({ data: [], error: null }),
+        orderIds.length ? db.from("payments").select("*").in("order_id", orderIds) : Promise.resolve({ data: [], error: null }),
+        db.from("products").select("*")
+      ]);
+      const relatedError = [customersRes, itemsRes, paymentsRes, productsRes].find(result => result.error)?.error;
+      if (relatedError) throw relatedError;
       state.customers = customersRes.data || [];
       state.products = productsRes.data || [];
       state.payments = paymentsRes.data || [];
-
-      // Load order items separately after the orders/products are known.
-      const itemsRes = await db
-        .from("order_items")
-        .select("id, order_id, product_id, quantity")
-        .order("id", { ascending: true });
-
-      if (itemsRes.error) throw itemsRes.error;
 
       state.orderItems = (itemsRes.data || []).map(item => ({
         ...item,
@@ -744,7 +763,8 @@ function getPayment(orderId) {
       }));
 
       console.log("Admin data loaded:", {
-        orders: state.orders.length,
+        orders: state.ordersTotal,
+        ordersOnPage: state.orders.length,
         customers: state.customers.length,
         orderItems: state.orderItems.length,
         products: state.products.length,
@@ -763,55 +783,18 @@ function getPayment(orderId) {
     }
   }
 
-  function orderMatches(order, query) {
-    if (!query) return true;
-    const q = query.toLowerCase();
-    const customer = getCustomer(order);
-    const items = getItems(order);
-    const productText = items.map(i => getProduct(i.product_id).name || "").join(" ");
-    const haystack = [
-      order.order_number,
-      customer.name,
-      customer.phone,
-      customer.email,
-      customer.address,
-      customer.city,
-      customer.state,
-      customer.pincode,
-      productText,
-      order.courier_name,
-      order.tracking_number
-    ].join(" ").toLowerCase();
-    return haystack.includes(q);
-  }
-
   function renderOrders() {
-    const query = $("orderSearch").value.trim();
-    const filter = $("orderFilter").value;
+    const pageCount = Math.ceil(state.ordersTotal / 10);
+    $("ordersSummary").textContent = `${state.ordersTotal} orders · showing ${state.orders.length} on this page`;
 
-    let rows = state.orders.filter(o => {
-      if (!orderMatches(o, query)) return false;
-      if (filter === "all") return true;
-      if (filter === "paid") return o.payment_status === "paid";
-      if (filter === "cancelled") return o.payment_status === "cancelled" || o.status === "cancelled";
-      return o.fulfillment_status === filter;
-    });
-
-    const paidCount = state.orders.filter(o => o.payment_status === "paid").length;
-    const readyCount = state.orders.filter(o => o.payment_status === "paid" && o.fulfillment_status === "ready_to_ship").length;
-    $("ordersSummary").textContent = `${rows.length} shown · ${paidCount} paid · ${readyCount} ready to ship`;
-
-    if (!rows.length) {
+    if (!state.orders.length) {
       $("ordersList").innerHTML = `<div class="empty">No orders match the current filter.</div>`;
       renderPagination("ordersPagination", 0, state.ordersPage, "ordersPage");
       return;
     }
 
-    const pageCount = Math.ceil(rows.length / 10);
-    state.ordersPage = Math.min(state.ordersPage, pageCount);
-    const start = (state.ordersPage - 1) * 10;
-    $("ordersList").innerHTML = rows.slice(start, start + 10).map(renderOrderCard).join("");
-    renderPagination("ordersPagination", rows.length, state.ordersPage, "ordersPage");
+    $("ordersList").innerHTML = state.orders.map(renderOrderCard).join("");
+    renderPagination("ordersPagination", state.ordersTotal, state.ordersPage, "ordersPage");
   }
 
   function renderPagination(containerId, total, page, stateKey) {
@@ -1516,20 +1499,25 @@ function getPayment(orderId) {
     });
 
     $("refreshOrders").addEventListener("click", loadOrders);
-    $("orderSearch").addEventListener("input", () => { state.ordersPage = 1; renderOrders(); });
-    $("orderFilter").addEventListener("change", () => { state.ordersPage = 1; renderOrders(); });
+    let orderSearchTimer;
+    $("orderSearch").addEventListener("input", () => {
+      state.ordersPage = 1;
+      clearTimeout(orderSearchTimer);
+      orderSearchTimer = setTimeout(loadOrders, 300);
+    });
+    $("orderFilter").addEventListener("change", () => { state.ordersPage = 1; loadOrders(); });
     $("clearOrderFilters").addEventListener("click", () => {
       $("orderSearch").value = "";
       $("orderFilter").value = "all";
       state.ordersPage = 1;
-      renderOrders();
+      loadOrders();
     });
 
     document.addEventListener("click", e => {
       const button = e.target.closest("button[data-page-target]");
       if (!button || button.disabled) return;
       state[button.dataset.pageTarget] = Number(button.dataset.page);
-      if (button.dataset.pageTarget === "ordersPage") renderOrders();
+      if (button.dataset.pageTarget === "ordersPage") loadOrders();
       else renderProducts();
     });
 
