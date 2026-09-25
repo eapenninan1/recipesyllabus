@@ -15,7 +15,15 @@
       --success:#2f6f4e; --white:#fffdf8; --danger:#9b3434;
     }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--paper);color:var(--ink);font-family:"Karla",Arial,sans-serif}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      background:var(--paper);
+      color:var(--ink);
+      font-family:"Karla",Arial,sans-serif;
+    }
     button,input{font:inherit}
     header.site{background:rgba(247,241,226,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
     nav{max-width:1100px;margin:0 auto;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;gap:18px}
@@ -26,7 +34,13 @@
     .nav-links{display:flex;gap:18px;flex-wrap:wrap}
     .nav-links a{color:var(--ink);text-decoration:none}
     .nav-links a:hover{color:var(--accent)}
-    main{max-width:800px;margin:0 auto;padding:54px 20px 80px}
+    main{
+      flex:1;
+      width:100%;
+      max-width:800px;
+      margin:0 auto;
+      padding:54px 20px 80px;
+    }
     .card{background:var(--header);border:1px solid var(--line);padding:28px}
     h1{margin:0 0 8px;font-family:"Newsreader",Georgia,serif;font-size:clamp(2rem,5vw,3rem);font-weight:500}
     .intro{margin:0 0 26px;color:var(--muted);line-height:1.55}
