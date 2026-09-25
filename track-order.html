@@ -173,59 +173,7 @@
     .items{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
     .item{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
     .muted{color:var(--muted)}
-    footer{
-      border-top:1px solid var(--line);
-      padding:30px 24px;
-      color:var(--muted);
-      font-size:.85rem;
-      background:var(--paper);
-    }
-    
-    .footer-wrap{
-      max-width:1120px;
-      margin:0 auto;
-      display:grid;
-      grid-template-columns:1fr auto 1fr;
-      align-items:center;
-      gap:20px;
-    }
-    
-    .footer-left{
-      text-align:left;
-    }
-    
-    .footer-center{
-      text-align:center;
-      white-space:nowrap;
-    }
-    
-    .footer-right{
-      text-align:right;
-    }
-    
-    footer a{
-      color:inherit;
-      text-decoration:underline;
-      text-underline-offset:2px;
-    }
-    
-    footer a:hover{
-      color:#4C6B8A;
-    }
-    
-    @media(max-width:700px){
-      .footer-wrap{
-        grid-template-columns:1fr;
-        gap:12px;
-      }
-    
-      .footer-left,
-      .footer-center,
-      .footer-right{
-        text-align:center;
-        white-space:normal;
-      }
-    }
+    footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;color:var(--muted);font-size:.85rem}
     @media(max-width:650px){
       nav{padding:12px 14px}.nav-links{gap:12px;font-size:.9rem}
       main{padding:36px 14px 60px}
@@ -283,7 +231,7 @@
   <main>
     <section class="card">
       <h1>Track Your Order</h1>
-      <p class="intro">Enter your order number and the email address used when placing the order.</p>
+      <p class="intro" id="trackIntro">Enter your order number and the email address used when placing the order.</p>
 
       <form id="trackForm">
         <div class="form-grid">
@@ -331,25 +279,15 @@
   </main>
 
   <footer>
-    <div class="footer-wrap">
-  
-      <div class="footer-left">
-        © 2026 Recipe Syllabus
-      </div>
-  
-      <div class="footer-center">
-        <a href="shipping-policy.html">Shipping Policy</a> ·
-        <a href="cancellation-refund-policy.html">Cancellation & Refund</a> ·
-        <a href="privacy-policy.html">Privacy Policy</a> ·
-        <a href="terms-and-conditions.html">Terms & Conditions</a>
-      </div>
-  
-      <div class="footer-right">
-        Pathanamthitta, Kerala
-      </div>
-  
+    © 2026 Recipe Syllabus
+    <div style="margin-top:10px;">
+      <a href="shipping-policy.html">Shipping Policy</a> ·
+      <a href="cancellation-refund-policy.html">Cancellation & Refund</a> ·
+      <a href="privacy-policy.html">Privacy Policy</a> ·
+      <a href="terms-and-conditions.html">Terms & Conditions</a>
     </div>
   </footer>
+
   <script>
     const TRACK_FUNCTION = "https://nuipcuxyebsvnlxucjfk.supabase.co/functions/v1/track-order";
 
@@ -436,17 +374,13 @@
       result.style.display = "block";
     }
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
+    async function trackOrder(orderNumber, email, automatic = false) {
       result.style.display = "none";
       showMessage("Looking up your order...", "info");
       button.disabled = true;
       button.textContent = "Checking...";
 
       try {
-        const orderNumber = document.getElementById("orderNumber").value.trim();
-        const email = document.getElementById("email").value.trim();
-
         const response = await fetch(TRACK_FUNCTION, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -461,13 +395,47 @@
         message.className = "message";
         message.style.display = "none";
         renderOrder(data);
+
+        if (automatic) {
+          document.getElementById("trackIntro").textContent = "Your order details are shown below.";
+          form.style.display = "none";
+        }
       } catch (error) {
         showMessage(error.message || "Unable to find this order.", "error");
+        if (automatic) {
+          document.getElementById("trackIntro").textContent = "We could not open the order automatically. You can enter the details below.";
+          form.style.display = "block";
+        }
       } finally {
         button.disabled = false;
         button.textContent = "Track Order";
       }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const orderNumber = document.getElementById("orderNumber").value.trim();
+      const email = document.getElementById("email").value.trim();
+
+      await trackOrder(orderNumber, email, false);
     });
+
+    // Email links use the order number in the query string and the email
+    // address in the URL fragment. Fragments are not sent to the server.
+    (async function autoTrackFromEmail() {
+      const params = new URLSearchParams(window.location.search);
+      const orderNumber = (params.get("order") || "").trim();
+      const fragment = window.location.hash.startsWith("#")
+        ? window.location.hash.slice(1)
+        : "";
+      const fragmentParams = new URLSearchParams(fragment);
+      const email = (fragmentParams.get("email") || "").trim();
+
+      if (!orderNumber || !email) return;
+
+      await trackOrder(orderNumber, email, true);
+    })();
   </script>
 </body>
 </html>
