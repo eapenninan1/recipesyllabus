@@ -313,7 +313,7 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
-    
+
     .image-item {
       position: relative;
       border: 1px solid var(--line);
@@ -321,14 +321,14 @@
       aspect-ratio: 1 / 1;
       overflow: hidden;
     }
-    
+
     .image-item img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
-    
+
     .image-item .image-badge {
       position: absolute;
       left: 7px;
@@ -340,7 +340,7 @@
       font-size: .72rem;
       font-weight: 700;
     }
-    
+
     .image-item .image-delete {
       position: absolute;
       right: 7px;
@@ -348,7 +348,6 @@
       padding: 5px 7px;
       font-size: .72rem;
     }
-    
     .message { padding: 10px 12px; margin-bottom: 12px; border-radius: 6px; font-size: .92rem; }
     .message-info { background: #eef1ee; color: var(--ink); border: 1px solid var(--line); }
     .message-error { background: #f8e7e7; color: #792727; border: 1px solid #e2bcbc; }
@@ -534,11 +533,11 @@
 
             <div class="editor-card">
               <h4>Product images</h4>
-            
+
               <div class="image-gallery" id="imagePreview">
                 <span class="muted">No images</span>
               </div>
-            
+
               <p class="muted" style="font-size:.85rem;line-height:1.45;margin-top:10px;">
                 Upload multiple images. All images are stored in
                 <code>product_images</code>.
@@ -1123,32 +1122,31 @@ function getPayment(orderId) {
   async function loadProducts() {
     const productsMessage = $("productsMessage");
     showMessage(productsMessage, "Loading products...", "info");
-  
+
     try {
       const [productsRes, imagesRes] = await Promise.all([
         db
           .from("products")
           .select("*")
           .order("created_at", { ascending: false }),
-  
+
         db
           .from("product_images")
           .select("id, product_id, image_url, sort_order, created_at")
           .order("sort_order", { ascending: true })
           .order("id", { ascending: true })
       ]);
-  
+
       if (productsRes.error) throw productsRes.error;
       if (imagesRes.error) throw imagesRes.error;
-  
+
       state.products = productsRes.data || [];
       state.productImages = imagesRes.data || [];
-  
+
       hideMessage(productsMessage);
       renderProducts();
     } catch (error) {
       console.error("Admin product loading error:", error);
-  
       showMessage(
         productsMessage,
         error.message || "Unable to load products.",
@@ -1171,13 +1169,13 @@ function getPayment(orderId) {
       const stockClass = stock <= 0 ? "stock-out" : (stock <= 5 ? "stock-low" : "");
       return `
         <article class="product-card">
-         <div class="product-image-wrap">
-          ${getProductImages(product.id).length
-            ? `<img
-                src="${escapeHtml(getProductImages(product.id)[0].image_url)}"
-                alt="${escapeHtml(product.name)}">`
-            : `<div class="no-image">No image</div>`}
-        </div>
+          <div class="product-image-wrap">
+            ${getProductImages(product.id).length
+              ? `<img
+                  src="${escapeHtml(getProductImages(product.id)[0].image_url)}"
+                  alt="${escapeHtml(product.name)}">`
+              : `<div class="no-image">No image</div>`}
+          </div>
           <div class="product-body">
             <div class="product-row">
               <div class="product-name">${escapeHtml(product.name)}</div>
@@ -1188,17 +1186,16 @@ function getPayment(orderId) {
               <span class="stock-pill ${stockClass}">
                 ${stock <= 0 ? "Out of stock" : `${stock} in stock`}
               </span>
-            
+
               <span class="status">
                 ${product.is_active ? "Active" : "Inactive"}
               </span>
             </div>
-            
+
             <div class="muted" style="font-size:.82rem;margin-bottom:10px;">
               ${getProductImages(product.id).length}
               image${getProductImages(product.id).length === 1 ? "" : "s"}
             </div>
-            
             <div class="product-actions">
               <button class="btn btn-small btn-primary" data-product-action="edit" data-id="${product.id}">Edit</button>
               <button class="btn btn-small" data-product-action="toggle" data-id="${product.id}">${product.is_active ? "Hide" : "Show"}</button>
@@ -1209,19 +1206,63 @@ function getPayment(orderId) {
     }).join("");
   }
 
- function openProductEditor(productId = null) {
+  async function deleteProductImage(imageId) {
+    const image = state.productImages.find(
+      x => String(x.id) === String(imageId)
+    );
+
+    if (!image) return;
+
+    const confirmed = window.confirm(
+      "Delete this product image?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await db
+        .from("product_images")
+        .delete()
+        .eq("id", imageId);
+
+      if (error) throw error;
+
+      showMessage(
+        $("globalMessage"),
+        "Product image deleted.",
+        "success"
+      );
+
+      await loadProducts();
+
+      if (state.editingProductId) {
+        openProductEditor(state.editingProductId);
+      }
+
+    } catch (error) {
+      console.error("Delete product image error:", error);
+
+      showMessage(
+        $("productsMessage"),
+        error.message || "Unable to delete image.",
+        "error"
+      );
+    }
+  }
+
+  function openProductEditor(productId = null) {
     state.editingProductId = productId;
-  
+
     $("productForm").reset();
     $("productImage").value = "";
     $("imagePreview").innerHTML =
       `<span class="muted">No images</span>`;
-  
+
     if (productId) {
       const p = state.products.find(x => x.id === productId);
-  
+
       if (!p) return;
-  
+
       $("editorTitle").textContent = "Edit Product";
       $("productId").value = p.id;
       $("productName").value = p.name || "";
@@ -1229,9 +1270,9 @@ function getPayment(orderId) {
       $("productPrice").value = p.price ?? "";
       $("productStock").value = p.stock_quantity ?? 0;
       $("productActive").value = String(Boolean(p.is_active));
-  
+
       const images = getProductImages(productId);
-  
+
       if (images.length) {
         $("imagePreview").innerHTML = images.map((image, index) => `
           <div class="image-item">
@@ -1239,9 +1280,18 @@ function getPayment(orderId) {
               src="${escapeHtml(image.image_url)}"
               alt="${escapeHtml(p.name)} image ${index + 1}"
             >
+
             ${index === 0
               ? `<div class="image-badge">Primary</div>`
               : ""}
+
+            <button
+              type="button"
+              class="btn btn-small btn-danger image-delete"
+              data-image-action="delete"
+              data-id="${image.id}">
+              Delete
+            </button>
           </div>
         `).join("");
       }
@@ -1249,9 +1299,9 @@ function getPayment(orderId) {
       $("editorTitle").textContent = "New Product";
       $("productActive").value = "true";
     }
-  
+
     $("editorPanel").classList.remove("hidden");
-  
+
     $("editorPanel").scrollIntoView({
       behavior: "smooth",
       block: "start"
@@ -1286,11 +1336,11 @@ function getPayment(orderId) {
 
   async function saveProduct(event) {
     event.preventDefault();
-  
+
     const button = $("saveProduct");
     button.disabled = true;
     button.textContent = "Saving...";
-  
+
     try {
       const name = $("productName").value.trim();
       const description = $("productDescription").value.trim();
@@ -1298,25 +1348,21 @@ function getPayment(orderId) {
       const stock_quantity = Number($("productStock").value);
       const is_active = $("productActive").value === "true";
       const files = Array.from($("productImage").files || []);
-  
+
       if (!name) {
         throw new Error("Product name is required.");
       }
-  
+
       if (!Number.isFinite(price) || price < 0) {
         throw new Error("Enter a valid price.");
       }
-  
+
       if (!Number.isInteger(stock_quantity) || stock_quantity < 0) {
         throw new Error("Stock must be a whole number >= 0.");
       }
-  
+
       let productId = state.editingProductId;
-  
-      // ---------------------------------------------------------
-      // SAVE PRODUCT DETAILS
-      // ---------------------------------------------------------
-  
+
       if (productId) {
         const { error } = await db
           .from("products")
@@ -1328,7 +1374,7 @@ function getPayment(orderId) {
             is_active
           })
           .eq("id", productId);
-  
+
         if (error) throw error;
       } else {
         const { data, error } = await db
@@ -1342,24 +1388,19 @@ function getPayment(orderId) {
           })
           .select("id")
           .single();
-  
+
         if (error) throw error;
-  
+
         productId = data.id;
       }
-  
-      // ---------------------------------------------------------
-      // UPLOAD NEW IMAGES
-      // ---------------------------------------------------------
-  
+
       if (files.length) {
         const existingImages = getProductImages(productId);
-  
         let sortOrder = existingImages.length;
-  
+
         for (const file of files) {
           const imageUrl = await uploadProductImage(file);
-  
+
           const { error: imageError } = await db
             .from("product_images")
             .insert({
@@ -1367,15 +1408,15 @@ function getPayment(orderId) {
               image_url: imageUrl,
               sort_order: sortOrder
             });
-  
+
           if (imageError) {
             throw imageError;
           }
-  
+
           sortOrder++;
         }
       }
-  
+
       showMessage(
         $("globalMessage"),
         state.editingProductId
@@ -1383,23 +1424,23 @@ function getPayment(orderId) {
           : "Product created successfully.",
         "success"
       );
-  
+
       closeProductEditor();
-  
+
       await Promise.all([
         loadProducts(),
         loadOrders()
       ]);
-  
+
     } catch (error) {
       console.error("Product save error:", error);
-  
+
       showMessage(
         $("productsMessage"),
         error.message || "Unable to save product.",
         "error"
       );
-  
+
     } finally {
       button.disabled = false;
       button.textContent = "Save product";
@@ -1459,66 +1500,20 @@ function getPayment(orderId) {
       button.disabled = false;
     });
 
-    $("newProductButton").addEventListener("click", () =>
-
-      async function deleteProductImage(imageId) {
-        const image = state.productImages.find(
-          x => String(x.id) === String(imageId)
-        );
-      
-        if (!image) return;
-      
-        const confirmed = window.confirm(
-          "Delete this product image?"
-        );
-      
-        if (!confirmed) return;
-      
-        try {
-          const { error } = await db
-            .from("product_images")
-            .delete()
-            .eq("id", imageId);
-      
-          if (error) throw error;
-      
-          showMessage(
-            $("globalMessage"),
-            "Product image deleted.",
-            "success"
-          );
-      
-          await loadProducts();
-      
-          if (state.editingProductId) {
-            openProductEditor(state.editingProductId);
-          }
-      
-        } catch (error) {
-          console.error("Delete product image error:", error);
-      
-          showMessage(
-            $("productsMessage"),
-            error.message || "Unable to delete image.",
-            "error"
-          );
-        }
-      }
-      
-      openProductEditor());
+    $("newProductButton").addEventListener("click", () => openProductEditor());
     $("closeEditor").addEventListener("click", closeProductEditor);
     $("cancelProduct").addEventListener("click", closeProductEditor);
     $("productForm").addEventListener("submit", saveProduct);
 
     $("productImage").addEventListener("change", () => {
       const files = Array.from($("productImage").files || []);
-    
+
       if (!files.length) {
         const productId = state.editingProductId;
-    
+
         if (productId) {
           const images = getProductImages(productId);
-    
+
           if (images.length) {
             $("imagePreview").innerHTML = images.map((image, index) => `
               <div class="image-item">
@@ -1529,6 +1524,13 @@ function getPayment(orderId) {
                 ${index === 0
                   ? `<div class="image-badge">Primary</div>`
                   : ""}
+                <button
+                  type="button"
+                  class="btn btn-small btn-danger image-delete"
+                  data-image-action="delete"
+                  data-id="${image.id}">
+                  Delete
+                </button>
               </div>
             `).join("");
           } else {
@@ -1539,30 +1541,25 @@ function getPayment(orderId) {
           $("imagePreview").innerHTML =
             `<span class="muted">No images selected</span>`;
         }
-    
+
         return;
       }
-    
-      $("imagePreview").innerHTML = images.map((image, index) => `
-      <div class="image-item">
-        <img
-          src="${escapeHtml(image.image_url)}"
-          alt="${escapeHtml(p.name)} image ${index + 1}"
-        >
-    
-        ${index === 0
-          ? `<div class="image-badge">Primary</div>`
-          : ""}
-    
-        <button
-          type="button"
-          class="btn btn-small btn-danger image-delete"
-          data-image-action="delete"
-          data-id="${image.id}">
-          Delete
-        </button>
-      </div>
-    `).join("");
+
+      $("imagePreview").innerHTML = files.map((file, index) => {
+        const url = URL.createObjectURL(file);
+
+        return `
+          <div class="image-item">
+            <img
+              src="${escapeHtml(url)}"
+              alt="Selected image ${index + 1}"
+            >
+            ${index === 0
+              ? `<div class="image-badge">Primary</div>`
+              : ""}
+          </div>
+        `;
+      }).join("");
     });
 
     $("productsGrid").addEventListener("click", async e => {
@@ -1577,18 +1574,17 @@ function getPayment(orderId) {
       const button = e.target.closest(
         "button[data-image-action='delete']"
       );
-    
+
       if (!button) return;
-    
+
       button.disabled = true;
-    
+
       await deleteProductImage(
         Number(button.dataset.id)
       );
-    
+
       button.disabled = false;
     });
-    
   }
 
   async function boot() {
