@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browse Recipe Syllabus study materials by programme and semester.">
+  <title>Study Materials | Recipe Syllabus</title>
+  <link rel="icon" type="image/png" href="../images/recipe-syllabus-favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@500&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--paper:#edf0e6;--paper-light:#f8f6ee;--ink:#22302a;--muted:#637067;--gold:#e8a33d;--line:#d7dbcf;--dark:#173b2e;--green:#1b4b39;--sage:#dce7d7;--sage-ink:#31533f;--radius:10px}
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "Karla",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:inherit}
+    button,input{font:inherit}
+    :focus-visible{outline:3px solid #4c6b8a;outline-offset:3px}
+    .wrap{width:min(1120px,100% - 48px);margin-inline:auto}
+    h1,h2,h3,p{margin-top:0}
+    h1,h2,h3{font-family:"Newsreader",Georgia,serif;font-weight:500;line-height:1.1}
+
+    .site-header{position:sticky;top:0;z-index:5;background:rgba(247,241,226,.97);backdrop-filter:blur(8px);border-bottom:1px solid #ddd9ca}
+    .nav{width:min(1120px,100% - 48px);min-height:82px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none}
+    .brand img{display:block;height:54px;width:auto}
+    .brand img:last-child{width:54px;object-fit:contain}
+    .back-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-size:.94rem;font-weight:600;white-space:nowrap}
+    .back-link:hover{color:var(--green)}
+    .back-link svg{width:17px;height:17px}
+
+    .hero{position:relative;overflow:hidden;background:var(--dark);color:#f5f3e9}
+    .hero-inner{position:relative;min-height:214px;padding:36px 0 34px;display:flex;align-items:center;justify-content:space-between;gap:32px}
+    .eyebrow,.section-label{font:500 .72rem/1.5 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase}
+    .eyebrow{margin:0 0 9px;color:#e9b950}
+    .hero h1{font-size:clamp(2.5rem,5vw,3.6rem);margin:0 0 8px;letter-spacing:-.025em}
+    .hero-copy{max-width:64ch;margin:0;color:#d5ddd3;font-size:1.05rem}
+    .hero-motto{position:relative;z-index:1;width:210px;flex:none;padding:8px 52px 8px 0;color:#bfcbb8;font:italic 1.03rem/1.25 "Newsreader",Georgia,serif;transform:rotate(-5deg)}
+    .hero-motto span{display:block}
+    .hero-motto::after{content:"";display:block;width:28px;height:2px;margin-top:11px;background:var(--gold)}
+    .hero-leaves{position:absolute;right:-4px;bottom:-24px;width:156px;height:196px;color:#9c9a56;opacity:.4}
+
+    main{padding:32px 0 54px}
+    .toolbar{display:grid;gap:17px;margin-bottom:24px}
+    .search-box{position:relative}
+    .search-box svg{position:absolute;left:15px;top:50%;width:19px;height:19px;transform:translateY(-50%);color:#53655a;pointer-events:none}
+    .search-box input{width:100%;height:48px;padding:0 16px 0 46px;border:1px solid #c5cbbf;border-radius:7px;background:#fbfaf6;color:var(--ink);font-size:.98rem;box-shadow:0 1px 2px rgba(20,40,30,.04)}
+    .search-box input::placeholder{color:#788078;opacity:1}
+    .filters{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+    .filter-button{min-height:34px;padding:6px 15px;border:1px solid #d1d8cc;border-radius:999px;background:transparent;color:#506157;font-size:.84rem;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
+    .filter-button:hover{border-color:#91a395;background:#e5eadf}
+    .filter-button[aria-pressed="true"]{border-color:var(--dark);background:var(--dark);color:white}
+    .result-count{margin-left:5px;padding-left:16px;border-left:1px solid #c7cec3;color:#69746b;font-size:.86rem}
+    .program-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:16px}
+    .program-card{min-width:0;padding:18px 18px 16px;border:1px solid #e0e0d6;border-radius:var(--radius);background:var(--paper-light);box-shadow:0 2px 8px rgba(27,45,34,.035)}
+    .card-heading{display:flex;align-items:center;gap:13px;min-height:54px;padding-bottom:14px;border-bottom:1px solid #e6e5dc}
+    .program-icon{display:grid;width:48px;height:48px;flex:none;place-items:center;border-radius:50%;background:#d9e5d1;color:var(--dark)}
+    .program-icon svg{width:24px;height:24px}
+    .card-title{min-width:0;flex:1}
+    .card-title h2{margin:0 0 4px;font-size:1.4rem}
+    .card-title p{margin:0;color:#77796c;font:500 .58rem/1.4 "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase}
+    .card-chevron{width:18px;height:18px;flex:none;color:#63796b}
+    .section-label{margin:14px 0 8px;color:#5d7566;font-size:.62rem;letter-spacing:.13em}
+    .semester-list{display:grid;gap:6px;list-style:none;margin:0;padding:0}
+    .semester-row{display:grid;grid-template-columns:minmax(68px,1fr) auto auto;align-items:center;gap:6px;min-height:34px}
+    .semester-name{font-size:.88rem;font-weight:600}
+    .action,.coming-pill{display:inline-flex;min-height:27px;align-items:center;justify-content:center;gap:5px;padding:4px 9px;border:0;border-radius:999px;text-decoration:none;font:500 .62rem/1 "IBM Plex Mono",monospace;white-space:nowrap}
+    .action svg{width:13px;height:13px;flex:none}
+    .action-guide{background:var(--sage);color:#294a36}
+    .action-guide:hover{background:#cbdcc5}
+    .action-revision{background:#f5d18c;color:#493514}
+    .action-revision:hover{background:#edc16b}
+    .coming-pill{grid-column:2 / 4;justify-self:start;padding-inline:12px;background:#eeece5;color:#73736c;font:400 .75rem/1.2 "Karla",Arial,sans-serif}
+    .card-note{display:flex;gap:10px;margin:14px 0 0;padding-top:12px;border-top:1px solid #e6e5dc;color:#626a61;font-size:.77rem;line-height:1.4}
+    .card-note svg{width:17px;height:17px;flex:none;color:#597260}
+    .card-note strong{display:block;margin-bottom:3px;color:#657366;font:500 .58rem/1.4 "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase}
+    .empty-state{grid-column:1/-1;padding:34px 20px;border:1px dashed #b8c2b7;border-radius:var(--radius);text-align:center;color:var(--muted)}
+    .empty-state[hidden],.program-card[hidden]{display:none}
+
+    .footer{background:var(--dark);color:#d5ddd3}
+    .footer-inner{min-height:94px;display:grid;grid-template-columns:1.2fr 1fr 1fr;align-items:center;gap:28px;padding-block:18px}
+    .footer-brand{font:500 1.3rem/1.1 "Newsreader",Georgia,serif}
+    .footer-brand span{display:block;margin-top:7px;color:#b8c5ba;font:500 .55rem/1.4 "IBM Plex Mono",monospace;letter-spacing:.17em;text-transform:uppercase}
+    .footer-message{min-height:34px;padding-left:28px;border-left:1px solid #627263;color:#bdc9be;font:500 .58rem/1.7 "IBM Plex Mono",monospace;letter-spacing:.15em;text-transform:uppercase}
+    .footer-message:last-child::after{content:"";display:block;width:18px;height:2px;margin-top:5px;background:var(--gold)}
+
+    @media(max-width:860px){.program-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-motto{width:160px}.hero-leaves{right:-40px}}
+    @media(max-width:600px){.wrap{width:min(100% - 32px,520px)}.nav{width:calc(100% - 32px);min-height:72px;gap:10px}.brand{gap:6px}.brand img{height:44px}.brand img:last-child{width:44px}.back-link{gap:5px;font-size:.8rem}.hero-inner{min-height:194px;padding:31px 0}.hero h1{font-size:2.35rem}.hero-copy{max-width:37ch;font-size:.96rem}.hero-motto{display:none}.hero-leaves{right:-60px;opacity:.25}main{padding:24px 0 38px}.toolbar{gap:13px;margin-bottom:18px}.filters{gap:7px}.filter-button{padding-inline:11px;font-size:.77rem}.result-count{margin-left:0;padding-left:10px}.program-grid{grid-template-columns:1fr;gap:12px}.program-card{padding:16px}.card-title h2{font-size:1.3rem}.footer-inner{grid-template-columns:1fr 1fr;gap:16px;padding-block:20px}.footer-brand{grid-column:1/-1}.footer-message{padding-left:14px}}
+    @media(max-width:380px){.brand img{height:38px}.brand img:last-child{width:38px}.back-link{font-size:.73rem}.semester-row{grid-template-columns:minmax(60px,1fr) auto auto;gap:4px}.action{padding-inline:7px;font-size:.57rem}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important}}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav" aria-label="Main navigation">
+      <a href="../index.html" class="brand" aria-label="Recipe Syllabus and Sheeja Eapen home">
+        <img src="../images/RecipeSyllabusLogo.png" alt="Recipe Syllabus logo">
+        <img src="../images/sheeja-eapen-logo.png" alt="Sheeja Eapen logo">
+      </a>
+      <a class="back-link" href="../index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 5-7 7 7 7M7 12h14"/></svg>Back to website</a>
+    </nav>
+  </header>
+
+  <section class="hero" aria-labelledby="page-title">
+    <div class="wrap hero-inner">
+      <div>
+        <p class="eyebrow">Study resources · Programme directory</p>
+        <h1 id="page-title">Find your study materials</h1>
+        <p class="hero-copy">Choose a programme, then open a semester guide or revision plan.</p>
+      </div>
+      <div class="hero-motto" aria-label="Better students, brighter tomorrows"><span>Better</span><span>Students</span><span>Brighter</span><span>Tomorrows</span></div>
+      <svg class="hero-leaves" viewBox="0 0 150 200" fill="none" aria-hidden="true"><path d="M34 198C54 152 69 105 111 12M58 143C27 137 15 114 14 86c28 3 48 21 44 57Zm25-53c-2-31 15-54 43-69 7 30-5 54-43 69Zm-7 25c-4-27 8-49 32-66 10 28-1 49-32 66Zm-24 50c-22-7-33-24-34-48 24 7 36 21 34 48Zm38-97C61 61 61 35 76 10c20 21 20 44 14 58Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </section>
+
+  <main class="wrap">
+    <section class="toolbar" aria-label="Find a programme">
+      <label class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+        <input id="program-search" type="search" placeholder="Search programmes (e.g. BSc, BCA, BBA...)" autocomplete="off" aria-label="Search programmes">
+      </label>
+      <div class="filters" role="group" aria-label="Filter programmes">
+        <button class="filter-button" type="button" data-filter="all" aria-pressed="true">All programmes</button>
+        <button class="filter-button" type="button" data-filter="available" aria-pressed="false">Guides available</button>
+        <button class="filter-button" type="button" data-filter="coming" aria-pressed="false">Coming soon</button>
+        <span class="result-count" id="result-count" aria-live="polite">3 programmes</span>
+      </div>
+    </section>
+
+    <section class="program-grid" id="program-grid" aria-label="Programmes">
+      <article class="program-card" data-name="BSc Statistics Statistics study materials" data-has-guides="true" data-has-coming="false">
+        <div class="card-heading">
+          <span class="program-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg></span>
+          <div class="card-title"><h2>BSc Statistics</h2><p>Analyse · Understand · Create impact</p></div>
+          <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+        </div>
+        <p class="section-label">Semester guides</p>
+        <ul class="semester-list">
+          <li class="semester-row"><span class="semester-name">Semester 1</span><a class="action action-guide" href="BscStatistics_Sem1/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>Guide</a><a class="action action-revision" href="BscStatistics_Sem1/revision.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5.5c3-1.5 6-1.2 9 1v14c-3-2.2-6-2.5-9-1zM21 5.5c-3-1.5-6-1.2-9 1v14c3-2.2 6-2.5 9-1z"/></svg>Revision</a></li>
+          <li class="semester-row"><span class="semester-name">Semester 2</span><a class="action action-guide" href="BscStatistics_Sem2/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>Guide</a><a class="action action-revision" href="BscStatistics_Sem2/revision.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5.5c3-1.5 6-1.2 9 1v14c-3-2.2-6-2.5-9-1zM21 5.5c-3-1.5-6-1.2-9 1v14c3-2.2-6-2.5-9-1z"/></svg>Revision</a></li>
+          <li class="semester-row"><span class="semester-name">Semester 3</span><a class="action action-guide" href="BscStatistics_Sem3/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>Guide</a><a class="action action-revision" href="BscStatistics_Sem3/revision.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5.5c3-1.5 6-1.2 9 1v14c-3-2.2-6-2.5-9-1zM21 5.5c-3-1.5-6-1.2-9 1v14c3-2.2-6-2.5-9-1z"/></svg>Revision</a></li>
+        </ul>
+        <p class="card-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM15 3v5h4M9 12h7M9 16h7"/></svg><span><strong>Includes key topics</strong>Fundamentals of Statistics and Data Visualisation, with step-by-step guides and practice resources.</span></p>
+      </article>
+
+      <article class="program-card" data-name="BCA Computer Applications study materials" data-has-guides="true" data-has-coming="true">
+        <div class="card-heading">
+          <span class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M2 20h20M9 17l-1 3m7-3 1 3"/></svg></span>
+          <div class="card-title"><h2>BCA</h2><p>Build · Code · Solve</p></div>
+          <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+        </div>
+        <p class="section-label">Semester guides</p>
+        <ul class="semester-list">
+          <li class="semester-row"><span class="semester-name">Semester 1</span><a class="action action-guide" href="Bca_Sem1/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>Guide</a><a class="action action-revision" href="Bca_Sem1/revision.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5.5c3-1.5 6-1.2 9 1v14c-3-2.2-6-2.5-9-1zM21 5.5c-3-1.5-6-1.2-9 1v14c3-2.2-6-2.5-9-1z"/></svg>Revision</a></li>
+          <li class="semester-row"><span class="semester-name">Semester 2</span><span class="coming-pill">Coming soon</span></li>
+          <li class="semester-row"><span class="semester-name">Semester 3</span><span class="coming-pill">Coming soon</span></li>
+          <li class="semester-row"><span class="semester-name">Semester 4</span><span class="coming-pill">Coming soon</span></li>
+        </ul>
+      </article>
+
+      <article class="program-card" data-name="BBA Business Administration study materials" data-has-guides="true" data-has-coming="false">
+        <div class="card-heading">
+          <span class="program-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="7" r="3.5"/><circle cx="5" cy="10" r="2.7"/><circle cx="19" cy="10" r="2.7"/><path d="M5 14c-2.4 0-4 1.7-4 4v2h8v-2c0-1.6.5-2.8 1.5-3.7A5.8 5.8 0 0 0 5 14Zm14 0a5.8 5.8 0 0 0-5.5.3c1 .9 1.5 2.1 1.5 3.7v2h8v-2c0-2.3-1.6-4-4-4ZM12 12c-3.2 0-5 2-5 4.6V21h10v-4.4c0-2.6-1.8-4.6-5-4.6Z"/></svg></span>
+          <div class="card-title"><h2>BBA</h2><p>Learn · Lead · Make a difference</p></div>
+          <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+        </div>
+        <p class="section-label">Semester guides</p>
+        <ul class="semester-list">
+          <li class="semester-row"><span class="semester-name">Semester 1</span><a class="action action-guide" href="Bba_Sem1/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>Guide</a><a class="action action-revision" href="Bba_Sem1/revision.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5.5c3-1.5 6-1.2 9 1v14c-3-2.2-6-2.5-9-1zM21 5.5c-3-1.5-6-1.2-9 1v14c3-2.2-6-2.5-9-1z"/></svg>Revision</a></li>
+        </ul>
+      </article>
+      <p class="empty-state" id="empty-state" hidden>No programmes match your search. Try a different name or filter.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div class="footer-brand">Recipe Syllabus<span>Study today. A brighter tomorrow.</span></div>
+      <div class="footer-message">Quality resources<br>for brighter minds</div>
+      <div class="footer-message">Stay curious<br>keep learning</div>
+    </div>
+  </footer>
+
+  <script>
+    (()=>{
+      const search=document.getElementById('program-search');
+      const cards=[...document.querySelectorAll('.program-card')];
+      const buttons=[...document.querySelectorAll('.filter-button')];
+      const count=document.getElementById('result-count');
+      const empty=document.getElementById('empty-state');
+      let activeFilter='all';
+      function updatePrograms(){
+        const query=search.value.trim().toLocaleLowerCase();
+        let visible=0;
+        cards.forEach(card=>{
+          const matchesQuery=card.dataset.name.toLocaleLowerCase().includes(query);
+          const matchesFilter=activeFilter==='all'||(activeFilter==='available'&&card.dataset.hasGuides==='true')||(activeFilter==='coming'&&card.dataset.hasComing==='true');
+          const show=matchesQuery&&matchesFilter;
+          card.hidden=!show;
+          if(show)visible++;
+        });
+        count.textContent=`${visible} ${visible===1?'programme':'programmes'}`;
+        empty.hidden=visible!==0;
+      }
+      search.addEventListener('input',updatePrograms);
+      buttons.forEach(button=>button.addEventListener('click',()=>{
+        activeFilter=button.dataset.filter;
+        buttons.forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+        updatePrograms();
+      }));
+    })();
+  </script>
+</body>
+</html>
