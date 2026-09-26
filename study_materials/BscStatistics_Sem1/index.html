@@ -22,11 +22,13 @@
     @media(max-width:800px){.layout{grid-template-columns:1fr}.toc{position:static}.toc ol{columns:2;column-gap:26px}.nav-links{gap:13px;font-size:.86rem}}
     @media(max-width:600px){nav{align-items:flex-start}.menu-toggle{display:block}.nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:var(--header-bg);padding:8px 24px 18px;border-bottom:1px solid var(--line);flex-direction:column;gap:0}.nav-links.open{display:flex}.nav-links a{display:block;padding:9px 0}.hero{padding:48px 0 42px}.toc ol{columns:1}main{padding-top:28px}.card{padding:15px}.wrap{padding-left:18px;padding-right:18px}}
     @media print{header.site,.toc,.backtop{display:none}.layout{display:block}.hero{background:white;color:black;padding:20px 0;border-bottom:2px solid #333}.hero p,.hero .meta{color:#333}body{background:white}.card,.tip,.warning{break-inside:avoid}.module{break-before:page}}
+    .logo.logo-with-mark{display:flex;align-items:center;gap:10px;flex:none}.logo-with-mark img{height:54px;width:auto;display:block}.logo-with-mark img:last-child{width:54px;object-fit:contain}
+    @media(max-width:600px){.logo-with-mark img{height:44px}.logo-with-mark img:last-child{width:44px}}
   </style>
 </head>
 <body>
   <header class="site"><nav aria-label="Main navigation">
-    <a class="logo" href="../index.html">Recipe <em>Syllabus</em></a>
+    <a class="logo logo-with-mark" href="../index.html" aria-label="Recipe Syllabus and Sheeja Eapen home"><img src="../../images/RecipeSyllabusLogo.png" alt="Recipe Syllabus logo"><img src="../../images/sheeja-eapen-logo.png" alt="Sheeja Eapen logo"></a>
     <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
     <ul class="nav-links"><li><a href="../index.html">Home</a></li><li><a href="#course-map">Course map</a></li><li><a href="#module1">Study modules</a></li><li><a href="revision.html">Revision plans</a></li></ul>
   </nav></header>
