@@ -44,5 +44,17 @@
     <section class="resource" id="formula"><h2>Formula and rule sheet</h2><div class="card"><h3>Logic and sets</h3><p class="formula">p→q ≡ ¬p∨q &nbsp; · &nbsp; ¬(p∧q)≡¬p∨¬q &nbsp; · &nbsp; ¬(p∨q)≡¬p∧¬q</p><p class="formula">|A∪B|=|A|+|B|−|A∩B|</p><p><strong>Inference patterns:</strong> Modus ponens p,p→q∴q; Modus tollens ¬q,p→q∴¬p; hypothetical syllogism p→q,q→r∴p→r; disjunctive syllogism p∨q,¬p∴q.</p><h3>Matrices</h3><p class="formula">det([[a,b],[c,d]])=ad−bc; &nbsp; A⁻¹=(1/det A)[[d,−b],[−c,a]]</p><p class="formula">AX=B ⇒ X=A⁻¹B (when A⁻¹ exists); &nbsp; Cramer: xᵢ=Dᵢ/D, D≠0</p></div><p>Use the main guide sections for symbol meanings, conditions and complete worked steps.</p></section>
   <p class="revision-prompt"><a href="revision.html">Open revision plans, module checklists and question bank →</a></p></article></div></main><footer class="footer"><div class="wrap footer-inner"><div class="footer-brand"><span class="footer-brand-name">Recipe Syllabus</span><span class="footer-copyright">© 2026 Recipe Syllabus</span></div><div class="footer-details"><span>MGU BCA · Semester 1 study guide · Discrete Mathematics</span><a class="backtop" href="#top">Back to top ↑</a></div></div></footer>
   <script>const b=document.querySelector('.menu'),l=document.querySelector('.navlinks');b.addEventListener('click',()=>{const o=l.classList.toggle('open');b.setAttribute('aria-expanded',String(o));});l.addEventListener('click',e=>{if(e.target.closest('a')){l.classList.remove('open');b.setAttribute('aria-expanded','false');}});</script>
-</body>
+<script>
+  document.addEventListener('click', event => {
+    document.querySelectorAll('button.menu,button.menu-toggle').forEach(button => {
+      const nav = button.closest('nav');
+      const menu = document.getElementById(button.getAttribute('aria-controls')) || nav?.querySelector('.navlinks,.nav-links');
+      const isOpen = button.getAttribute('aria-expanded') === 'true';
+      if (isOpen && menu && !menu.contains(event.target) && !button.contains(event.target)) {
+        button.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('open', 'is-open');
+      }
+    });
+  });
+</script></body>
 </html>

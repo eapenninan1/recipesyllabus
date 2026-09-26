@@ -93,5 +93,17 @@
     toggle.addEventListener('click',()=>{const open=links.classList.toggle('open');toggle.setAttribute('aria-expanded',String(open));});
     links.addEventListener('click',event=>{if(event.target.closest('a')){links.classList.remove('open');toggle.setAttribute('aria-expanded','false');}});
   </script>
-</body>
+<script>
+  document.addEventListener('click', event => {
+    document.querySelectorAll('button.menu,button.menu-toggle').forEach(button => {
+      const nav = button.closest('nav');
+      const menu = document.getElementById(button.getAttribute('aria-controls')) || nav?.querySelector('.navlinks,.nav-links');
+      const isOpen = button.getAttribute('aria-expanded') === 'true';
+      if (isOpen && menu && !menu.contains(event.target) && !button.contains(event.target)) {
+        button.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('open', 'is-open');
+      }
+    });
+  });
+</script></body>
 </html>

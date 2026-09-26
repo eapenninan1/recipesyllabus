@@ -45,5 +45,17 @@
     <section class="resource" id="formula"><h2>Formula sheet and answer-writing</h2><div class="card"><p class="formula">AM=Σx/n &nbsp; · &nbsp; Weighted AM=Σwx/Σw &nbsp; · &nbsp; Range=max−min</p><p class="formula">QD=(Q₃−Q₁)/2 &nbsp; · &nbsp; MD=Σ|x−A|/n &nbsp; · &nbsp; CV=(SD/mean)×100%</p><p class="formula">Pearson r=Σ[(x−x̄)(y−ȳ)]/√{Σ(x−x̄)²Σ(y−ȳ)²}</p><p class="formula">Spearman rₛ=1−6Σd²/[n(n²−1)] (no tied ranks)</p><p class="formula">Regression y−ȳ=bᵧₓ(x−x̄); &nbsp; regression x−x̄=bₓᵧ(y−ȳ)</p><p class="formula">P(A∪B)=P(A)+P(B)−P(A∩B); &nbsp; P(A∩B)=P(A)P(B|A)</p><p>For a numerical answer show: given → required → formula → substitution → calculation → result → interpretation. For a case study, include the business question, data, method, result, limitation and recommendation supported by the evidence.</p></div></section>
   <p class="revision-prompt"><a href="revision.html">Open revision plans, module checklists and question bank →</a></p></article></div></main><footer class="footer"><div class="wrap footer-inner"><div class="footer-brand"><span class="footer-brand-name">Recipe Syllabus</span><span class="footer-copyright">© 2026 Recipe Syllabus</span></div><div class="footer-details"><span>MGU BBA · Semester 1 study guide · Business Statistics and Logic</span><a class="backtop" href="#top">Back to top ↑</a></div></div></footer>
   <script>const b=document.querySelector('.menu'),l=document.querySelector('.navlinks');b.addEventListener('click',()=>{const o=l.classList.toggle('open');b.setAttribute('aria-expanded',String(o));});l.addEventListener('click',e=>{if(e.target.closest('a')){l.classList.remove('open');b.setAttribute('aria-expanded','false');}});</script>
-</body>
+<script>
+  document.addEventListener('click', event => {
+    document.querySelectorAll('button.menu,button.menu-toggle').forEach(button => {
+      const nav = button.closest('nav');
+      const menu = document.getElementById(button.getAttribute('aria-controls')) || nav?.querySelector('.navlinks,.nav-links');
+      const isOpen = button.getAttribute('aria-expanded') === 'true';
+      if (isOpen && menu && !menu.contains(event.target) && !button.contains(event.target)) {
+        button.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('open', 'is-open');
+      }
+    });
+  });
+</script></body>
 </html>

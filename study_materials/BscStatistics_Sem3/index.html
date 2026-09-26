@@ -49,5 +49,17 @@
     <section class="resource" id="formula"><h2>Test formula sheet</h2><div class="card"><h3>Standard errors and test statistics</h3><p class="formula">One-mean z: z=(x̄−μ₀)/(σ/√n)</p><p class="formula">Two-independent-means z: z=[(x̄₁−x̄₂)−Δ₀]/√(σ₁²/n₁+σ₂²/n₂)</p><p class="formula">One-sample t: t=(x̄−μ₀)/(s/√n), df=n−1</p><p class="formula">Paired t: t=(d̄−d₀)/(sᵈ/√n), df=n−1</p><p class="formula">Pooled two-sample t: sₚ²=[(n₁−1)s₁²+(n₂−1)s₂²]/(n₁+n₂−2); t=[(x̄₁−x̄₂)−Δ₀]/[sₚ√(1/n₁+1/n₂)]</p><p class="formula">One-way ANOVA: F=MSB/MSW; df between=k−1; df within=N−k</p><h3>Association and decision reminders</h3><p class="formula">Expected count: Eᵢⱼ=(row total×column total)/grand total</p><p class="formula">Chi-square: χ²=Σ(O−E)²/E; df=(r−1)(c−1)</p><p>These are reminders, not substitutes for assumptions and test selection. For a numerical response show hypotheses, α, formula, substitution, statistic, decision and contextual interpretation.</p></div></section>
   <p class="revision-prompt"><a href="revision.html">Open revision plans, module checklists and question bank →</a></p></article></div></main><footer class="footer"><div class="wrap footer-inner"><div class="footer-brand"><span class="footer-brand-name">Recipe Syllabus</span><span class="footer-copyright">© 2026 Recipe Syllabus</span></div><div class="footer-details"><span>MGU BSc Statistics · Semester 3 study guide · Statistical Research Techniques using Softwares</span><a class="backtop" href="#top">Back to top ↑</a></div></div></footer>
   <script>const b=document.querySelector('.menu'),l=document.querySelector('.navlinks');b.addEventListener('click',()=>{const o=l.classList.toggle('open');b.setAttribute('aria-expanded',String(o));});l.addEventListener('click',e=>{if(e.target.closest('a')){l.classList.remove('open');b.setAttribute('aria-expanded','false');}});</script>
-</body>
+<script>
+  document.addEventListener('click', event => {
+    document.querySelectorAll('button.menu,button.menu-toggle').forEach(button => {
+      const nav = button.closest('nav');
+      const menu = document.getElementById(button.getAttribute('aria-controls')) || nav?.querySelector('.navlinks,.nav-links');
+      const isOpen = button.getAttribute('aria-expanded') === 'true';
+      if (isOpen && menu && !menu.contains(event.target) && !button.contains(event.target)) {
+        button.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('open', 'is-open');
+      }
+    });
+  });
+</script></body>
 </html>
