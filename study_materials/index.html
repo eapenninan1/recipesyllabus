@@ -13,7 +13,7 @@
     :root{--paper:#edf0e6;--paper-light:#f8f6ee;--ink:#22302a;--muted:#637067;--gold:#e8a33d;--line:#d7dbcf;--dark:#173b2e;--green:#1b4b39;--sage:#dce7d7;--sage-ink:#31533f;--radius:10px}
     *,*::before,*::after{box-sizing:border-box}
     html{scroll-behavior:smooth}
-    body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "Karla",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    body{min-height:100vh;display:flex;flex-direction:column;margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "Karla",Arial,sans-serif;-webkit-font-smoothing:antialiased}
     a{color:inherit}
     button,input{font:inherit}
     :focus-visible{outline:3px solid #4c6b8a;outline-offset:3px}
@@ -41,7 +41,7 @@
     .hero-motto::after{content:"";display:block;width:28px;height:2px;margin-top:11px;background:var(--gold)}
     .hero-leaves{position:absolute;right:-4px;bottom:-24px;width:156px;height:196px;color:#9c9a56;opacity:.4}
 
-    main{padding:32px 0 54px}
+    main{flex:1;padding:32px 0 54px}
     .toolbar{display:grid;gap:17px;margin-bottom:24px}
     .search-box{position:relative}
     .search-box svg{position:absolute;left:15px;top:50%;width:19px;height:19px;transform:translateY(-50%);color:#53655a;pointer-events:none}
@@ -82,6 +82,7 @@
     .footer-inner{min-height:94px;display:grid;grid-template-columns:1.2fr 1fr 1fr;align-items:center;gap:28px;padding-block:18px}
     .footer-brand{font:500 1.3rem/1.1 "Newsreader",Georgia,serif}
     .footer-brand span{display:block;margin-top:7px;color:#b8c5ba;font:500 .55rem/1.4 "IBM Plex Mono",monospace;letter-spacing:.17em;text-transform:uppercase}
+    .footer-brand .footer-copyright{margin-top:5px;color:#aebbb1;font:400 .68rem/1.3 "Karla",Arial,sans-serif;letter-spacing:0;text-transform:none}
     .footer-message{min-height:34px;padding-left:28px;border-left:1px solid #627263;color:#bdc9be;font:500 .58rem/1.7 "IBM Plex Mono",monospace;letter-spacing:.15em;text-transform:uppercase}
     .footer-message:last-child::after{content:"";display:block;width:18px;height:2px;margin-top:5px;background:var(--gold)}
 
@@ -176,7 +177,7 @@
 
   <footer class="footer">
     <div class="wrap footer-inner">
-      <div class="footer-brand">Recipe Syllabus<span>Study today. A brighter tomorrow.</span></div>
+      <div class="footer-brand">Recipe Syllabus<span>Study today. A brighter tomorrow.</span><span class="footer-copyright">© 2026</span></div>
       <div class="footer-message">Quality resources<br>for brighter minds</div>
       <div class="footer-message">Stay curious<br>keep learning</div>
     </div>
