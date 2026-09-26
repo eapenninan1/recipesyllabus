@@ -18,6 +18,7 @@
     @media print{header,.toc{display:none}.layout{display:block}.hero{background:white;color:black;border-bottom:2px solid black;padding:20px 0}.hero p,.meta{color:#333}body{background:white}.module{break-before:page}}
     .logo.logo-with-mark{display:flex;align-items:center;gap:10px;flex:none}.logo-with-mark img{height:54px;width:auto;display:block}.logo-with-mark img:last-child{width:54px;object-fit:contain}
     @media(max-width:600px){.logo-with-mark img{height:44px}.logo-with-mark img:last-child{width:44px}}
+    .footer{background:var(--dark);color:#D5DDD3;padding:24px 0}.footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:20px}.footer p{max-width:none;color:#D5DDD3;margin:0}.footer .backtop{flex:none;color:var(--marigold)}@media(max-width:600px){.footer .wrap{align-items:flex-start;flex-direction:column;gap:8px}}
   </style>
 </head>
 <body id="top">
@@ -53,7 +54,7 @@
 
     <section class="resource" id="formula"><h2>Essential formula sheet</h2><div class="card"><h3>Random variables and expectation</h3><p class="formula">Σₓ p(x)=1; &nbsp; ∫f(x)dx=1; &nbsp; F(x)=P(X≤x)</p><p class="formula">E(X)=Σxp(x) or ∫xf(x)dx; &nbsp; Var(X)=E(X²)−[E(X)]²</p><p class="formula">E(aX+b)=aE(X)+b; &nbsp; Var(aX+b)=a²Var(X)</p><p class="formula">Mₓ(t)=E(eᵗˣ); &nbsp; φₓ(t)=E(eⁱᵗˣ)</p><h3>Distribution formulas (parameterisation used here)</h3><p class="formula">Bernoulli(p): P(1)=p, P(0)=1−p; mean p; variance p(1−p)</p><p class="formula">Binomial(n,p): P(X=k)=C(n,k)pᵏ(1−p)ⁿ⁻ᵏ; mean np; variance np(1−p)</p><p class="formula">Poisson(λ): P(X=k)=e⁻λ λᵏ/k!; mean=variance=λ</p><p class="formula">Geometric(p), trials to first success: P(X=k)=(1−p)ᵏ⁻¹p; mean=1/p</p><p class="formula">Uniform(a,b): f=1/(b−a); mean=(a+b)/2; variance=(b−a)²/12</p><p class="formula">Exponential(rate λ): f(x)=λe⁻λˣ; F(x)=1−e⁻λˣ; mean=1/λ; variance=1/λ²</p><p class="formula">Gamma(shape α, rate λ): f(x)=λᵅxᵅ⁻¹e⁻λˣ/Γ(α); mean=α/λ; variance=α/λ²</p><p class="formula">Normal(μ,σ²): z=(x−μ)/σ; interval probability from standard normal table</p></div><p>Formulas are compact reminders: return to the module explanations for symbol meanings, model conditions, step-by-step substitutions and interpretations.</p></section>
   </article></div></main>
-  <footer class="footer"><div class="wrap"><a href="../index.html">Study materials</a> · <a href="revision.html">Revision and exam practice</a> · MGU BSc Statistics Semester 2</div></footer>
+  <footer class="footer"><div class="wrap"><p>Recipe Syllabus · MGU BSc (Hons) Statistics · Semester 2 study guide</p><a class="backtop" href="#top">Back to top ↑</a></div></footer>
   <script>const b=document.querySelector('.menu'),l=document.querySelector('.navlinks');b.addEventListener('click',()=>{const o=l.classList.toggle('open');b.setAttribute('aria-expanded',String(o));});l.addEventListener('click',e=>{if(e.target.closest('a')){l.classList.remove('open');b.setAttribute('aria-expanded','false');}});</script>
 </body>
 </html>
