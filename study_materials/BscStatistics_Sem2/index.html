@@ -122,47 +122,53 @@
 
 <!-- 1. The Stacked Fraction Styles -->
 <style>
+  /* Explicitly target code, formula sheet wrappers, and inline equations */
+  code, pre, .formula-sheet, .handwritten-frac {
+    font-family: 'Patrick Hand', 'Pangolin', cursive !important;
+  }
+
   /* Stacked Handwritten Fraction Engine */
   .handwritten-frac {
     display: inline-flex;
     flex-direction: column;
     vertical-align: middle;
     text-align: center;
-    font-family: 'Patrick Hand', 'Pangolin', cursive !important;
     font-size: 0.9em;
-    padding: 0 0.1em;
+    padding: 0 0.15em;
     line-height: 1;
   }
 
   .handwritten-frac .num {
-    border-bottom: 2px solid currentColor; /* Handwritten style line fraction bar */
+    border-bottom: 2px solid currentColor; /* Creates the clean ink pen line */
     padding-bottom: 1px;
     line-height: 1.1;
   }
 
   .handwritten-frac .den {
-    padding-top: 1px;
+    padding-top: 2px;
     line-height: 1.1;
   }
 </style>
 
-<!-- 2. The Auto-Conversion Script -->
+<!-- 2. The Upgraded Unicode-Aware Transformation Script -->
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    // Target common containers holding text content to avoid breaking HTML structures
-    const targetContainers = document.querySelectorAll("p, li, td, div.content, section");
+    // Explicitly scan paragraphs, lists, table elements, code strings, and math wrappers
+    const targetContainers = document.querySelectorAll("p, li, td, code, pre, .content, section");
 
-    // Regular Expression matching any numbers, variables, or math symbols split by a slash "/"
-    const fractionRegex = /\b([0-9a-zA-Zαβλμₓ]+)\/([0-9a-zA-Zαβλμₓ()]+)\b/g;
+    // Robust Unicode-Aware Matcher: Safely accommodates decimal numbers, Greek vars (λ), and exponents (²).
+    // Avoids strict \b traps so characters map correctly.
+    const fractionRegex = /([0-9a-zA-Zαβλμₓ.]+)\/([0-9a-zA-Zαβλμₓ.()²³⁴⁵⁶⁷⁸⁹⁰]+)/g;
 
     targetContainers.forEach(container => {
-      // Loop through all child nodes to only alter plain text nodes, preserving HTML links/buttons
+      // Loop text properties strictly to guard external navigation paths or buttons
       const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
       let textNode;
       const nodesToReplace = [];
 
       while (textNode = walker.nextNode()) {
-        if (fractionRegex.test(textNode.nodeValue)) {
+        // Exclude script text changes and local template asset directory URLs
+        if (fractionRegex.test(textNode.nodeValue) && !textNode.nodeValue.includes("../images/")) {
           nodesToReplace.push(textNode);
         }
       }
@@ -177,6 +183,7 @@
     });
   });
 </script>
+
 
 
 </body>
