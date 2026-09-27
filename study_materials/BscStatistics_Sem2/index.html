@@ -5,48 +5,6 @@
   <meta name="description" content="MGU BSc (Hons) Statistics Semester 2 study guide: Introduction to Statistical Modelling, MG2DSCSTA100.">
   <title>Introduction to Statistical Modelling | Recipe Syllabus</title>
   <link rel="icon" type="image/png" href="../../images/recipe-syllabus-favicon.png">
-  <!-- Add this right ABOVE your existing <style> tag -->
-<link rel="preconnect" href="https://googleapis.com">
-<link rel="preconnect" href="https://gstatic.com" crossorigin>
-<link href="https://googleapis.com/css2?family=Patrick+Hand&family=Pangolin&display=swap" rel="stylesheet">
-
-<style>
-  /* Target any standard HTML math formatting tags or code segments */
-  code, pre, var, math, math *, .math {
-    font-family: 'Patrick Hand', 'Pangolin', cursive !important;
-    font-style: normal !important;
-  }
-
-  /* Since your content uses inline mathematical text formats, this ensures 
-     symbols like Σ, ∬, and fractions map to the clean handwritten style */
-  .content, section {
-    --math-font: 'Patrick Hand', 'Pangolin', cursive;
-  }
-
-  /* Stacked Handwritten Fraction Component */
-.frac {
-  display: inline-flex;
-  flex-direction: column;
-  vertical-align: middle;
-  text-align: center;
-  font-family: 'Patrick Hand', 'Pangolin', cursive !important;
-  font-size: 0.95em;
-  padding: 0 0.15em;
-}
-
-.frac .num {
-  border-bottom: 2px solid currentColor; /* Creates the handwritten fraction bar */
-  padding-bottom: 1px;
-  line-height: 1.1;
-}
-
-.frac .den {
-  padding-top: 1px;
-  line-height: 1.1;
-}
-
-</style>
-
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@500&family=Karla:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -118,73 +76,5 @@
       }
     });
   });
-</script>
-
-<!-- 1. The Stacked Fraction Styles -->
-<style>
-  /* Explicitly target code, formula sheet wrappers, and inline equations */
-  code, pre, .formula-sheet, .handwritten-frac {
-    font-family: 'Patrick Hand', 'Pangolin', cursive !important;
-  }
-
-  /* Stacked Handwritten Fraction Engine */
-  .handwritten-frac {
-    display: inline-flex;
-    flex-direction: column;
-    vertical-align: middle;
-    text-align: center;
-    font-size: 0.9em;
-    padding: 0 0.15em;
-    line-height: 1;
-  }
-
-  .handwritten-frac .num {
-    border-bottom: 2px solid currentColor; /* Creates the clean ink pen line */
-    padding-bottom: 1px;
-    line-height: 1.1;
-  }
-
-  .handwritten-frac .den {
-    padding-top: 2px;
-    line-height: 1.1;
-  }
-</style>
-
-<!-- 2. The Upgraded Unicode-Aware Transformation Script -->
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    // Explicitly scan paragraphs, lists, table elements, code strings, and math wrappers
-    const targetContainers = document.querySelectorAll("p, li, td, code, pre, .content, section");
-
-    // Robust Unicode-Aware Matcher: Safely accommodates decimal numbers, Greek vars (λ), and exponents (²).
-    // Avoids strict \b traps so characters map correctly.
-    const fractionRegex = /([0-9a-zA-Zαβλμₓ.]+)\/([0-9a-zA-Zαβλμₓ.()²³⁴⁵⁶⁷⁸⁹⁰]+)/g;
-
-    targetContainers.forEach(container => {
-      // Loop text properties strictly to guard external navigation paths or buttons
-      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-      let textNode;
-      const nodesToReplace = [];
-
-      while (textNode = walker.nextNode()) {
-        // Exclude script text changes and local template asset directory URLs
-        if (fractionRegex.test(textNode.nodeValue) && !textNode.nodeValue.includes("../images/")) {
-          nodesToReplace.push(textNode);
-        }
-      }
-
-      nodesToReplace.forEach(node => {
-        const span = document.createElement("span");
-        span.innerHTML = node.nodeValue.replace(fractionRegex, (match, numerator, denominator) => {
-          return `<span class="handwritten-frac"><span class="num">${numerator}</span><span class="den">${denominator}</span></span>`;
-        });
-        node.parentNode.replaceChild(span, node);
-      });
-    });
-  });
-</script>
-
-
-
-</body>
+</script></body>
 </html>
