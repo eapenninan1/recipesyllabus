@@ -22,6 +22,29 @@
   .content, section {
     --math-font: 'Patrick Hand', 'Pangolin', cursive;
   }
+
+  /* Stacked Handwritten Fraction Component */
+.frac {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: middle;
+  text-align: center;
+  font-family: 'Patrick Hand', 'Pangolin', cursive !important;
+  font-size: 0.95em;
+  padding: 0 0.15em;
+}
+
+.frac .num {
+  border-bottom: 2px solid currentColor; /* Creates the handwritten fraction bar */
+  padding-bottom: 1px;
+  line-height: 1.1;
+}
+
+.frac .den {
+  padding-top: 1px;
+  line-height: 1.1;
+}
+
 </style>
 
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -95,5 +118,66 @@
       }
     });
   });
-</script></body>
+</script>
+
+<!-- 1. The Stacked Fraction Styles -->
+<style>
+  /* Stacked Handwritten Fraction Engine */
+  .handwritten-frac {
+    display: inline-flex;
+    flex-direction: column;
+    vertical-align: middle;
+    text-align: center;
+    font-family: 'Patrick Hand', 'Pangolin', cursive !important;
+    font-size: 0.9em;
+    padding: 0 0.1em;
+    line-height: 1;
+  }
+
+  .handwritten-frac .num {
+    border-bottom: 2px solid currentColor; /* Handwritten style line fraction bar */
+    padding-bottom: 1px;
+    line-height: 1.1;
+  }
+
+  .handwritten-frac .den {
+    padding-top: 1px;
+    line-height: 1.1;
+  }
+</style>
+
+<!-- 2. The Auto-Conversion Script -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Target common containers holding text content to avoid breaking HTML structures
+    const targetContainers = document.querySelectorAll("p, li, td, div.content, section");
+
+    // Regular Expression matching any numbers, variables, or math symbols split by a slash "/"
+    const fractionRegex = /\b([0-9a-zA-Zαβλμₓ]+)\/([0-9a-zA-Zαβλμₓ()]+)\b/g;
+
+    targetContainers.forEach(container => {
+      // Loop through all child nodes to only alter plain text nodes, preserving HTML links/buttons
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+      let textNode;
+      const nodesToReplace = [];
+
+      while (textNode = walker.nextNode()) {
+        if (fractionRegex.test(textNode.nodeValue)) {
+          nodesToReplace.push(textNode);
+        }
+      }
+
+      nodesToReplace.forEach(node => {
+        const span = document.createElement("span");
+        span.innerHTML = node.nodeValue.replace(fractionRegex, (match, numerator, denominator) => {
+          return `<span class="handwritten-frac"><span class="num">${numerator}</span><span class="den">${denominator}</span></span>`;
+        });
+        node.parentNode.replaceChild(span, node);
+      });
+    });
+  });
+</script>
+
+
+</body>
 </html>
