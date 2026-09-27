@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" role="img" aria-labelledby="title desc">
+<title id="title">Covariance (descriptive form)</title><desc id="desc">Covariance equals the sum of paired deviations from their means divided by the number of observations, with definitions of each symbol.</desc>
+<rect width="1500" height="500" fill="#EDEFE6"/>
+<rect x="18" y="14" width="1464" height="100" rx="18" fill="#c9e6fa" stroke="#1680f5" stroke-width="5"/>
+<text x="750" y="83" text-anchor="middle" font-family="'Comic Sans MS',cursive" font-size="58" font-weight="bold" fill="#101c68">Covariance <tspan font-size="48" font-weight="normal">(descriptive form)</tspan></text>
+<rect x="18" y="132" width="1464" height="350" rx="22" fill="#fff9d9" stroke="#ff9b13" stroke-width="5"/>
+<rect x="410" y="150" width="680" height="105" rx="15" fill="#fff0ee" stroke="#f32945" stroke-width="5"/>
+<text x="750" y="220" text-anchor="middle" font-family="'Comic Sans MS',cursive" font-size="48" fill="#101c68">Cov(X,Y) = <tspan font-size="56">Σ</tspan> (x − x̄)(y − ȳ) / n</text>
+<g font-family="'Comic Sans MS',cursive" font-size="34" fill="#101c68">
+<text x="340" y="310" text-anchor="end">Cov(X,Y)</text><text x="390" y="310">=</text><text x="440" y="310">Covariance between variables X and Y</text>
+<text x="340" y="355" text-anchor="end">x̄</text><text x="390" y="355">=</text><text x="440" y="355">Mean of X</text>
+<text x="340" y="400" text-anchor="end">ȳ</text><text x="390" y="400">=</text><text x="440" y="400">Mean of Y</text>
+<text x="340" y="445" text-anchor="end">x</text><text x="390" y="445">=</text><text x="440" y="445">Value of X for each observation</text>
+<text x="910" y="355" text-anchor="end">y</text><text x="950" y="355">=</text><text x="1000" y="355">Value of Y for each observation</text>
+<text x="910" y="400" text-anchor="end">n</text><text x="950" y="400">=</text><text x="1000" y="400">Number of observations</text>
+</g></svg>
