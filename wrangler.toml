@@ -2,5 +2,13 @@ name = "facebook-followers"
 main = "worker.js"
 compatibility_date = "2026-09-21"
 
+[[kv_namespaces]]
+binding = "SOCIAL_KV"
+id = "REPLACE_WITH_CLOUDFLARE_KV_NAMESPACE_ID"
+
+[vars]
+META_APP_ID = "1490929542864364"
+OAUTH_REDIRECT_URI = "https://facebook-followers-api.eapenninan1.workers.dev/connect/facebook/callback"
+
 [assets]
 directory = "./"

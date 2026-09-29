@@ -1,11 +1,75 @@
 const CACHE_KEY = new Request(
-  "https://facebook-followers-cache.internal/combined-v8"
+  "https://facebook-followers-cache.internal/combined-v9"
 );
 
 const CACHE_TTL = 14400; // 4 hours
 
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    // Start Facebook Login. The callback discovers the linked Page and Instagram
+    // professional account, then stores the Page token server-side in KV.
+    if (url.pathname === "/connect/facebook") {
+      if (!env.META_APP_ID || !env.OAUTH_REDIRECT_URI || !env.SOCIAL_KV) {
+        return new Response("Meta OAuth is not configured. Set META_APP_ID, OAUTH_REDIRECT_URI and SOCIAL_KV.", { status: 503 });
+      }
+      const state = crypto.randomUUID();
+      await env.SOCIAL_KV.put(`oauth:${state}`, "1", { expirationTtl: 600 });
+      const authorize = new URL("https://www.facebook.com/v25.0/dialog/oauth");
+      authorize.search = new URLSearchParams({
+        client_id: env.META_APP_ID,
+        redirect_uri: env.OAUTH_REDIRECT_URI,
+        state,
+        response_type: "code",
+        scope: "pages_show_list,pages_read_engagement,instagram_basic"
+      });
+      return Response.redirect(authorize.toString(), 302);
+    }
+
+    if (url.pathname === "/connect/facebook/callback") {
+      const state = url.searchParams.get("state");
+      const code = url.searchParams.get("code");
+      if (!state || !env.SOCIAL_KV || !(await env.SOCIAL_KV.get(`oauth:${state}`))) {
+        return new Response("Invalid or expired Facebook authorization. Start again at /connect/facebook.", { status: 400 });
+      }
+      await env.SOCIAL_KV.delete(`oauth:${state}`);
+      if (url.searchParams.has("error")) return new Response("Facebook authorization was cancelled.", { status: 400 });
+      if (!code || !env.META_APP_SECRET) return new Response("Meta authorization is incomplete. Check the Worker app secret and reconnect.", { status: 400 });
+      const tokenUrl = new URL("https://graph.facebook.com/v25.0/oauth/access_token");
+      tokenUrl.search = new URLSearchParams({
+        client_id: env.META_APP_ID,
+        client_secret: env.META_APP_SECRET,
+        redirect_uri: env.OAUTH_REDIRECT_URI,
+        code
+      });
+      const tokenResponse = await fetch(tokenUrl);
+      const tokenData = await tokenResponse.json();
+      if (!tokenResponse.ok || !tokenData.access_token) return new Response("Could not complete Facebook authorization.", { status: 502 });
+      const pagesUrl = new URL("https://graph.facebook.com/v25.0/me/accounts");
+      pagesUrl.search = new URLSearchParams({
+        fields: "id,name,access_token,fan_count,instagram_business_account{id,username,followers_count}",
+        access_token: tokenData.access_token
+      });
+      const pagesResponse = await fetch(pagesUrl);
+      const pagesData = await pagesResponse.json();
+      const page = (pagesData.data || []).find(item => item.instagram_business_account?.id && item.access_token);
+      if (!pagesResponse.ok || !page) {
+        return new Response("No Facebook Page linked to an Instagram professional account was found. Check account linking and granted permissions, then reconnect.", { status: 400 });
+      }
+      await env.SOCIAL_KV.put("social:meta", JSON.stringify({
+        pageId: page.id,
+        pageName: page.name,
+        pageAccessToken: page.access_token,
+        instagramId: page.instagram_business_account.id,
+        updatedAt: new Date().toISOString()
+      }));
+      await caches.default.delete(CACHE_KEY);
+      return new Response("Facebook and Instagram connected. Follower statistics will update on the next request.", {
+        headers: { "Content-Type": "text/plain; charset=utf-8" }
+      });
+    }
+
     const allowedOrigins = [
       "https://recipesyllabus.in",
       "https://www.recipesyllabus.in",
@@ -58,98 +122,19 @@ export default {
     let instagramFollowers = null;
 
     try {
-      const facebookQuery = `
-        mutation GetFacebookFollowers {
-          goto(
-            url: "https://www.facebook.com/sheeja.eapen"
-            waitUntil: domContentLoaded
-          ) {
-            status
-          }
-
-          text(selector: "body", visible: true) {
-            text
-          }
-
-        }
-      `;
-
-      const fbResponse = await fetch(
-        `https://production-sfo.browserless.io/stealth/bql?token=${encodeURIComponent(env.BROWSERLESS_API_KEY)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: facebookQuery })
-        }
-      );
-
-      const fbData = await fbResponse.json();
-      const facebookText = fbData?.data?.text?.text || "";
-      const match = facebookText.match(/([\d,.]+(?:[KMB])?)\s+followers/i);
-      if (fbResponse.ok && match) facebookFollowers = match[1];
+      const connected = env.SOCIAL_KV && JSON.parse(await env.SOCIAL_KV.get("social:meta") || "null");
+      if (connected?.pageAccessToken && connected?.pageId) {
+        const fbUrl = new URL(`https://graph.facebook.com/v25.0/${connected.pageId}`);
+        fbUrl.search = new URLSearchParams({ fields: "fan_count", access_token: connected.pageAccessToken });
+        const igUrl = new URL(`https://graph.facebook.com/v25.0/${connected.instagramId}`);
+        igUrl.search = new URLSearchParams({ fields: "followers_count", access_token: connected.pageAccessToken });
+        const [fbResponse, igResponse] = await Promise.all([fetch(fbUrl), fetch(igUrl)]);
+        const [fbData, igData] = await Promise.all([fbResponse.json(), igResponse.json()]);
+        if (fbResponse.ok) facebookFollowers = fbData.fan_count ?? null;
+        if (igResponse.ok) instagramFollowers = igData.followers_count ?? null;
+      }
     } catch (error) {
-      console.error("Facebook followers error:", error);
-    }
-
-    try {
-      const instagramQuery = `
-        mutation GetInstagramFollowers {
-          goto(
-            url: "https://www.instagram.com/sheejaeapen/"
-            waitUntil: domContentLoaded
-          ) {
-            status
-          }
-
-          closeButton: if(selector: "button[aria-label='Close']") {
-            click(selector: "button[aria-label='Close']") {
-              time
-            }
-          }
-
-          closeIcon: if(selector: "svg[aria-label='Close']") {
-            click(selector: "svg[aria-label='Close']") {
-              time
-            }
-          }
-
-          text(selector: "body", visible: true) {
-            text
-          }
-
-          profileHtml: html(selector: "body") {
-            html
-          }
-        }
-      `;
-
-      const igResponse = await fetch(
-        `https://production-sfo.browserless.io/stealth/bql?token=${encodeURIComponent(env.BROWSERLESS_API_KEY)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: instagramQuery })
-        }
-      );
-
-      const igData = await igResponse.json();
-      const instagramText = igData?.data?.text?.text || "";
-      const instagramHtml = igData?.data?.profileHtml?.html || "";
-      const instagramProfile = `${instagramText} ${instagramHtml}`;
-      const match = instagramProfile.match(/([\d,.]+(?:[KMB])?)\s+followers/i);
-      const embeddedCount = instagramHtml.match(
-        /(?:"edge_followed_by"\s*:\s*\{\s*"count"|"followers_count")\s*:\s*(\d+)/i
-      );
-      if (igResponse.ok && match) instagramFollowers = match[1];
-      else if (igResponse.ok && embeddedCount) instagramFollowers = embeddedCount[1];
-      else console.log("Instagram scrape did not find a count:", JSON.stringify({
-        status: igResponse.status,
-        errors: igData?.errors,
-        text: instagramText.slice(0, 600),
-        html: instagramHtml.slice(0, 1200)
-      }));
-    } catch (error) {
-      console.error("Instagram followers error:", error);
+      console.error("Meta follower stats error:", error);
     }
 
     let youtubeSubscribers = null;
