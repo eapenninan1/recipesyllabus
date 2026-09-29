@@ -105,7 +105,7 @@ export default {
             text
           }
 
-          profileHead: html(selector: "head") {
+          profileHtml: html(selector: "body") {
             html
           }
         }
@@ -122,10 +122,20 @@ export default {
 
       const igData = await igResponse.json();
       const instagramText = igData?.data?.text?.text || "";
-      const instagramHead = igData?.data?.profileHead?.html || "";
-      const instagramProfile = `${instagramText} ${instagramHead}`;
+      const instagramHtml = igData?.data?.profileHtml?.html || "";
+      const instagramProfile = `${instagramText} ${instagramHtml}`;
       const match = instagramProfile.match(/([\d,.]+(?:[KMB])?)\s+followers/i);
+      const embeddedCount = instagramHtml.match(
+        /(?:"edge_followed_by"\s*:\s*\{\s*"count"|"followers_count")\s*:\s*(\d+)/i
+      );
       if (igResponse.ok && match) instagramFollowers = match[1];
+      else if (igResponse.ok && embeddedCount) instagramFollowers = embeddedCount[1];
+      else console.log("Instagram scrape did not find a count:", JSON.stringify({
+        status: igResponse.status,
+        errors: igData?.errors,
+        text: instagramText.slice(0, 600),
+        html: instagramHtml.slice(0, 1200)
+      }));
     } catch (error) {
       console.error("Instagram followers error:", error);
     }
