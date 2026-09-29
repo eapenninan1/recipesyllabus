@@ -23,7 +23,7 @@ export default {
         state,
         response_type: "code",
         scope: "pages_show_list,pages_read_engagement,instagram_basic"
-      });
+      }).toString();
       return Response.redirect(authorize.toString(), 302);
     }
 
@@ -42,7 +42,7 @@ export default {
         client_secret: env.META_APP_SECRET,
         redirect_uri: env.OAUTH_REDIRECT_URI,
         code
-      });
+      }).toString();
       const tokenResponse = await fetch(tokenUrl);
       const tokenData = await tokenResponse.json();
       if (!tokenResponse.ok || !tokenData.access_token) return new Response("Could not complete Facebook authorization.", { status: 502 });
@@ -50,7 +50,7 @@ export default {
       pagesUrl.search = new URLSearchParams({
         fields: "id,name,access_token,fan_count,instagram_business_account{id,username,followers_count}",
         access_token: tokenData.access_token
-      });
+      }).toString();
       const pagesResponse = await fetch(pagesUrl);
       const pagesData = await pagesResponse.json();
       const page = (pagesData.data || []).find(item => item.instagram_business_account?.id && item.access_token);
@@ -125,9 +125,9 @@ export default {
       const connected = env.SOCIAL_KV && JSON.parse(await env.SOCIAL_KV.get("social:meta") || "null");
       if (connected?.pageAccessToken && connected?.pageId) {
         const fbUrl = new URL(`https://graph.facebook.com/v25.0/${connected.pageId}`);
-        fbUrl.search = new URLSearchParams({ fields: "fan_count", access_token: connected.pageAccessToken });
+        fbUrl.search = new URLSearchParams({ fields: "fan_count", access_token: connected.pageAccessToken }).toString();
         const igUrl = new URL(`https://graph.facebook.com/v25.0/${connected.instagramId}`);
-        igUrl.search = new URLSearchParams({ fields: "followers_count", access_token: connected.pageAccessToken });
+        igUrl.search = new URLSearchParams({ fields: "followers_count", access_token: connected.pageAccessToken }).toString();
         const [fbResponse, igResponse] = await Promise.all([fetch(fbUrl), fetch(igUrl)]);
         const [fbData, igData] = await Promise.all([fbResponse.json(), igResponse.json()]);
         if (fbResponse.ok) facebookFollowers = fbData.fan_count ?? null;
