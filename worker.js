@@ -46,6 +46,14 @@ export default {
       const tokenResponse = await fetch(tokenUrl);
       const tokenData = await tokenResponse.json();
       if (!tokenResponse.ok || !tokenData.access_token) return new Response("Could not complete Facebook authorization.", { status: 502 });
+      const permissionsUrl = new URL("https://graph.facebook.com/v25.0/me/permissions");
+      permissionsUrl.search = new URLSearchParams({ access_token: tokenData.access_token }).toString();
+      const permissionsResponse = await fetch(permissionsUrl);
+      const permissionsData = permissionsResponse.ok ? await permissionsResponse.json() : {};
+      const grantedPermissions = (permissionsData.data || [])
+        .filter(item => item.status === "granted")
+        .map(item => item.permission);
+      console.info("Meta granted permissions:", grantedPermissions);
       const pagesUrl = new URL("https://graph.facebook.com/v25.0/me/accounts");
       pagesUrl.search = new URLSearchParams({
         fields: "id,name,access_token,fan_count,instagram_business_account{id,username,followers_count}",
@@ -54,8 +62,33 @@ export default {
       const pagesResponse = await fetch(pagesUrl);
       const pagesData = await pagesResponse.json();
       const page = (pagesData.data || []).find(item => item.instagram_business_account?.id && item.access_token);
-      if (!pagesResponse.ok || !page) {
-        return new Response("No Facebook Page linked to an Instagram professional account was found. Check account linking and granted permissions, then reconnect.", { status: 400 });
+      if (!pagesResponse.ok) {
+        const graphError = pagesData.error || {};
+        console.error("Meta Page lookup failed:", {
+          status: pagesResponse.status,
+          code: graphError.code ?? null,
+          subcode: graphError.error_subcode ?? null,
+          message: graphError.message ?? "No error message returned"
+        });
+        return new Response(
+          `Meta could not list your Pages (HTTP ${pagesResponse.status}${graphError.code ? `, error ${graphError.code}` : ""}). Check the Worker logs for details, then verify Page access and granted permissions.`,
+          { status: 502 }
+        );
+      }
+      if (!page) {
+        const pages = pagesData.data || [];
+        console.error("Meta Page lookup found no linked Instagram professional account:", {
+          pageCount: pages.length,
+          pages: pages.map(item => ({
+            name: item.name ?? null,
+            hasPageAccessToken: Boolean(item.access_token),
+            hasInstagramBusinessAccount: Boolean(item.instagram_business_account?.id)
+          }))
+        });
+        return new Response(
+          `Meta returned ${pages.length} Page(s). Granted permissions: ${grantedPermissions.join(", ") || "none reported"}.`,
+          { status: 400 }
+        );
       }
       await env.SOCIAL_KV.put("social:meta", JSON.stringify({
         pageId: page.id,
