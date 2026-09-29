@@ -1,5 +1,5 @@
 const CACHE_KEY = new Request(
-  "https://facebook-followers-cache.internal/combined-v7"
+  "https://facebook-followers-cache.internal/combined-v8"
 );
 
 const CACHE_TTL = 14400; // 4 hours
@@ -99,6 +99,18 @@ export default {
             waitUntil: domContentLoaded
           ) {
             status
+          }
+
+          closeButton: if(selector: "button[aria-label='Close']") {
+            click(selector: "button[aria-label='Close']") {
+              time
+            }
+          }
+
+          closeIcon: if(selector: "svg[aria-label='Close']") {
+            click(selector: "svg[aria-label='Close']") {
+              time
+            }
           }
 
           text(selector: "body", visible: true) {
