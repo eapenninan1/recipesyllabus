@@ -424,7 +424,13 @@
             <div class="stat">
               <b id="followerCount">Loading...</b>
               <span>Facebook Followers</span>
-            </div>       
+            </div>
+
+            <!-- Instagram Followers -->
+            <div class="stat">
+              <b id="instagramFollowers">Loading...</b>
+              <span>Instagram Followers</span>
+            </div>
           
             <!-- YouTube Subscribers -->
             <div class="stat">
@@ -576,6 +582,10 @@ async function getStats() {
         document.getElementById("followerCount").textContent =
             data.facebookFollowers || "Not found";
 
+        // Instagram Followers
+        document.getElementById("instagramFollowers").textContent =
+            data.instagramFollowers ?? "Not found";
+
         // YouTube Subscribers
         document.getElementById("youtubeSubscribers").textContent =
             data.youtubeSubscribers ?? "Not found";
@@ -592,6 +602,7 @@ async function getStats() {
         console.error("Stats error:", error);
 
         document.getElementById("followerCount").textContent = "Error";
+        document.getElementById("instagramFollowers").textContent = "Error";
         document.getElementById("youtubeSubscribers").textContent = "Error";
         document.getElementById("youtubeViews").textContent = "Error";
         document.getElementById("youtubeVideos").textContent = "Error";

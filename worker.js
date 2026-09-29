@@ -1,10 +1,20 @@
 export default {
   async fetch(request, env) {
 
+    const allowedOrigins = new Set([
+      "https://recipesyllabus.in",
+      "https://www.recipesyllabus.in",
+      "https://eapenninan1.github.io"
+    ]);
+    const requestOrigin = request.headers.get("Origin");
+
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "https://eapenninan1.github.io",
+      "Access-Control-Allow-Origin": allowedOrigins.has(requestOrigin)
+        ? requestOrigin
+        : "https://recipesyllabus.in",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
+      "Vary": "Origin",
       "Content-Type": "application/json"
     };
 
@@ -27,10 +37,11 @@ export default {
 
     try {
 
-      const query = `
-        mutation GetFollowers {
+      const getProfileText = async (url) => {
+        const query = `
+        mutation GetProfile {
           goto(
-            url: "https://www.facebook.com/sheeja.eapen"
+            url: "${url}"
             waitUntil: domContentLoaded
           ) {
             status
@@ -56,32 +67,32 @@ export default {
         }
       );
 
-      const result = await browserlessResponse.json();
+        const result = await browserlessResponse.json();
 
-      if (!browserlessResponse.ok || result.errors) {
+        if (!browserlessResponse.ok || result.errors) {
+          throw new Error("Browserless request failed for " + url);
+        }
+
+        return result?.data?.pageText?.text || "";
+      };
+
+      const [facebookText, instagramText] = await Promise.all([
+        getProfileText("https://www.facebook.com/sheeja.eapen"),
+        getProfileText("https://www.instagram.com/sheejaeapen/")
+      ]);
+
+      const getFollowerCount = (pageText) => {
+        const match = pageText.match(/([\d,.]+(?:[KMB])?)\s+followers/i);
+        return match ? match[1] : null;
+      };
+
+      const facebookFollowers = getFollowerCount(facebookText);
+      const instagramFollowers = getFollowerCount(instagramText);
+
+      if (!facebookFollowers && !instagramFollowers) {
         return new Response(
           JSON.stringify({
-            error: "Browserless request failed",
-            details: result
-          }),
-          {
-            status: 502,
-            headers: corsHeaders
-          }
-        );
-      }
-
-      const pageText =
-        result?.data?.pageText?.text || "";
-
-      const match = pageText.match(
-        /([\d,.]+(?:[KMB])?)\s+followers/i
-      );
-
-      if (!match) {
-        return new Response(
-          JSON.stringify({
-            error: "Follower count not found"
+            error: "Facebook and Instagram follower counts not found"
           }),
           {
             status: 404,
@@ -92,7 +103,8 @@ export default {
 
       return new Response(
         JSON.stringify({
-          followers: match[1]
+          facebookFollowers,
+          instagramFollowers
         }),
         {
           status: 200,
