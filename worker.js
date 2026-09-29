@@ -1,6 +1,9 @@
 const CACHE_KEY = new Request(
-  "https://facebook-followers-cache.internal/combined-v9"
+  "https://facebook-followers-cache.internal/combined-v14"
 );
+
+// Recipe Syllabus Page ID shown in Meta's Page access authorization screen.
+const META_PAGE_ID = "1412091325311256";
 
 const CACHE_TTL = 14400; // 4 hours
 
@@ -56,12 +59,12 @@ export default {
       console.info("Meta granted permissions:", grantedPermissions);
       const pagesUrl = new URL("https://graph.facebook.com/v25.0/me/accounts");
       pagesUrl.search = new URLSearchParams({
-        fields: "id,name,access_token,fan_count,instagram_business_account{id,username,followers_count}",
+        fields: "id,name,access_token,followers_count,instagram_business_account{id,username,followers_count}",
         access_token: tokenData.access_token
       }).toString();
       const pagesResponse = await fetch(pagesUrl);
       const pagesData = await pagesResponse.json();
-      const page = (pagesData.data || []).find(item => item.instagram_business_account?.id && item.access_token);
+      let page = (pagesData.data || []).find(item => item.instagram_business_account?.id && item.access_token);
       if (!pagesResponse.ok) {
         const graphError = pagesData.error || {};
         console.error("Meta Page lookup failed:", {
@@ -75,10 +78,30 @@ export default {
           { status: 502 }
         );
       }
+      let directLookupStatus = null;
+      let directLookupError = null;
+      if (!page) {
+        // Some Business Portfolio Pages are omitted from /me/accounts even after
+        // the user grants the Page. Query the selected Page ID directly.
+        const directPageUrl = new URL(`https://graph.facebook.com/v25.0/${META_PAGE_ID}`);
+        directPageUrl.search = new URLSearchParams({
+          fields: "id,name,access_token,followers_count,instagram_business_account{id,username,followers_count}",
+          access_token: tokenData.access_token
+        }).toString();
+        const directPageResponse = await fetch(directPageUrl);
+        const directPageData = await directPageResponse.json();
+        directLookupStatus = directPageResponse.status;
+        directLookupError = directPageData.error?.message ?? null;
+        if (directPageResponse.ok && directPageData.access_token && directPageData.instagram_business_account?.id) {
+          page = directPageData;
+        }
+      }
       if (!page) {
         const pages = pagesData.data || [];
         console.error("Meta Page lookup found no linked Instagram professional account:", {
           pageCount: pages.length,
+          directLookupStatus,
+          directLookupError,
           pages: pages.map(item => ({
             name: item.name ?? null,
             hasPageAccessToken: Boolean(item.access_token),
@@ -86,7 +109,7 @@ export default {
           }))
         });
         return new Response(
-          `Meta returned ${pages.length} Page(s). Granted permissions: ${grantedPermissions.join(", ") || "none reported"}.`,
+          `Meta returned ${pages.length} Page(s). Direct lookup of the selected Page returned HTTP ${directLookupStatus}${directLookupError ? `: ${directLookupError}` : ""}. Granted permissions: ${grantedPermissions.join(", ") || "none reported"}.`,
           { status: 400 }
         );
       }
@@ -151,23 +174,65 @@ export default {
       });
     }
 
-    let facebookFollowers = null;
+    let facebookProfileFollowers = null;
+    let facebookPageFollowers = null;
     let instagramFollowers = null;
+
+    try {
+      if (!env.BROWSERLESS_API_KEY) {
+        console.error("Facebook profile follower lookup skipped: BROWSERLESS_API_KEY is not configured.");
+      } else {
+        const facebookQuery = `
+          mutation GetFacebookProfileFollowers {
+            goto(
+              url: "https://www.facebook.com/sheeja.eapen"
+              waitUntil: domContentLoaded
+            ) {
+              status
+            }
+            text(selector: "body", visible: true) {
+              text
+            }
+          }
+        `;
+        const browserlessUrl = new URL("https://production-sfo.browserless.io/stealth/bql");
+        browserlessUrl.searchParams.set("token", env.BROWSERLESS_API_KEY);
+        const browserlessResponse = await fetch(browserlessUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: facebookQuery })
+        });
+        const browserlessData = await browserlessResponse.json();
+        const profileText = browserlessData?.data?.text?.text || "";
+        const followerMatch = profileText.match(/([\d,.]+(?:\s?[KMB])?)\s+followers\b/i);
+        if (browserlessResponse.ok && !browserlessData.errors && followerMatch) {
+          facebookProfileFollowers = followerMatch[1].replace(/\s+/g, "");
+        } else {
+          console.error("Facebook profile follower count was not found in the Browserless response.", {
+            status: browserlessResponse.status,
+            hasErrors: Boolean(browserlessData.errors),
+            textLength: profileText.length
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Facebook profile follower lookup error:", error);
+    }
 
     try {
       const connected = env.SOCIAL_KV && JSON.parse(await env.SOCIAL_KV.get("social:meta") || "null");
       if (connected?.pageAccessToken && connected?.pageId) {
         const fbUrl = new URL(`https://graph.facebook.com/v25.0/${connected.pageId}`);
-        fbUrl.search = new URLSearchParams({ fields: "fan_count", access_token: connected.pageAccessToken }).toString();
+        fbUrl.search = new URLSearchParams({ fields: "followers_count", access_token: connected.pageAccessToken }).toString();
         const igUrl = new URL(`https://graph.facebook.com/v25.0/${connected.instagramId}`);
         igUrl.search = new URLSearchParams({ fields: "followers_count", access_token: connected.pageAccessToken }).toString();
         const [fbResponse, igResponse] = await Promise.all([fetch(fbUrl), fetch(igUrl)]);
         const [fbData, igData] = await Promise.all([fbResponse.json(), igResponse.json()]);
-        if (fbResponse.ok) facebookFollowers = fbData.fan_count ?? null;
+        if (fbResponse.ok) facebookPageFollowers = fbData.followers_count ?? null;
         if (igResponse.ok) instagramFollowers = igData.followers_count ?? null;
       }
     } catch (error) {
-      console.error("Meta follower stats error:", error);
+      console.error("Facebook Page/Instagram follower stats error:", error);
     }
 
     let youtubeSubscribers = null;
@@ -202,7 +267,9 @@ export default {
     }
 
     const result = {
-      facebookFollowers,
+      // Keep the existing website field mapped to the personal Facebook profile.
+      facebookFollowers: facebookProfileFollowers,
+      facebookPageFollowers,
       instagramFollowers,
       youtubeSubscribers,
       youtubeViews,
