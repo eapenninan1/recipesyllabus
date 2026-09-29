@@ -1,5 +1,5 @@
 const CACHE_KEY = new Request(
-  "https://facebook-followers-cache.internal/combined-v6"
+  "https://facebook-followers-cache.internal/combined-v7"
 );
 
 const CACHE_TTL = 14400; // 4 hours
@@ -70,6 +70,7 @@ export default {
           text(selector: "body", visible: true) {
             text
           }
+
         }
       `;
 
@@ -103,6 +104,10 @@ export default {
           text(selector: "body", visible: true) {
             text
           }
+
+          profileHead: html(selector: "head") {
+            html
+          }
         }
       `;
 
@@ -117,7 +122,9 @@ export default {
 
       const igData = await igResponse.json();
       const instagramText = igData?.data?.text?.text || "";
-      const match = instagramText.match(/([\d,.]+(?:[KMB])?)\s+followers/i);
+      const instagramHead = igData?.data?.profileHead?.html || "";
+      const instagramProfile = `${instagramText} ${instagramHead}`;
+      const match = instagramProfile.match(/([\d,.]+(?:[KMB])?)\s+followers/i);
       if (igResponse.ok && match) instagramFollowers = match[1];
     } catch (error) {
       console.error("Instagram followers error:", error);
