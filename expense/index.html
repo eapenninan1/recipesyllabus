@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#173b32">
+<title>Expense</title>
+<style>
+:root{
+  --bg:#f5f4ed;
+  --card:#ffffff;
+  --ink:#173b32;
+  --muted:#6d7772;
+  --accent:#d89b3d;
+  --line:#dfe3dc;
+  --soft:#edf2ec;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.app{
+  width:min(720px,100%);
+  margin:auto;
+  padding:24px 18px 40px;
+}
+header{
+  padding:10px 2px 26px;
+}
+header h1{margin:0;font-size:30px;letter-spacing:-.5px}
+header p{margin:7px 0 0;color:var(--muted)}
+.input-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:22px;
+  box-shadow:0 10px 30px rgba(23,59,50,.06);
+}
+.input-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.input-button{
+  position:relative;
+  min-height:180px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--soft);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  cursor:pointer;
+  transition:.18s ease;
+}
+.input-button:hover{transform:translateY(-2px);border-color:#c6d0c8}
+.input-button:active{transform:translateY(0)}
+.icon{font-size:48px;margin-bottom:12px}
+.input-button strong{font-size:18px}
+.input-button span{font-size:13px;color:var(--muted);margin-top:5px}
+input[type=file]{display:none}
+.voice-area{margin-top:18px;display:none}
+.voice-area.show{display:block}
+.voice-status{
+  padding:15px 16px;
+  background:#f8f8f3;
+  border:1px solid var(--line);
+  border-radius:14px;
+  color:var(--muted);
+  min-height:52px;
+}
+.voice-actions{display:flex;gap:10px;margin-top:12px}
+button{
+  border:0;
+  border-radius:12px;
+  padding:12px 17px;
+  font:inherit;
+  font-weight:650;
+  cursor:pointer;
+}
+.primary{background:var(--ink);color:white}
+.secondary{background:#e8ece6;color:var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.preview{
+  display:none;
+  margin-top:20px;
+  border-top:1px solid var(--line);
+  padding-top:20px;
+}
+.preview.show{display:block}
+.preview h2{font-size:19px;margin:0 0 12px}
+.receipt-preview{
+  width:100%;
+  max-height:420px;
+  object-fit:contain;
+  border-radius:14px;
+  background:#f1f1ec;
+  border:1px solid var(--line);
+}
+.result-box{
+  margin-top:15px;
+  background:#f8f8f3;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:15px;
+}
+.result-row{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  padding:8px 0;
+  border-bottom:1px solid var(--line);
+}
+.result-row:last-child{border-bottom:0}
+.result-label{color:var(--muted)}
+.result-value{font-weight:650;text-align:right}
+.note{
+  margin-top:16px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.5;
+}
+@media(max-width:520px){
+  .app{padding:18px 14px 30px}
+  header h1{font-size:27px}
+  .input-card{padding:14px}
+  .input-grid{grid-template-columns:1fr;gap:12px}
+  .input-button{min-height:145px}
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <h1>Expense</h1>
+    <p>Add an expense using a receipt or your voice.</p>
+  </header>
+
+  <section class="input-card">
+    <div class="input-grid">
+      <label class="input-button" for="receiptInput">
+        <div class="icon">📷</div>
+        <strong>Scan Receipt</strong>
+        <span>Take a photo or choose an image</span>
+      </label>
+
+      <button class="input-button" id="voiceButton" type="button">
+        <div class="icon">🎤</div>
+        <strong>Speak Expense</strong>
+        <span>Describe what you spent</span>
+      </button>
+    </div>
+
+    <input id="receiptInput" type="file" accept="image/*" capture="environment">
+
+    <div class="voice-area" id="voiceArea">
+      <div class="voice-status" id="voiceStatus">Tap Start and speak naturally.</div>
+      <div class="voice-actions">
+        <button class="primary" id="startVoice" type="button">Start</button>
+        <button class="secondary" id="stopVoice" type="button" disabled>Stop</button>
+      </div>
+    </div>
+
+    <div class="preview" id="preview">
+      <h2 id="previewTitle">Submitted receipt</h2>
+      <img class="receipt-preview" id="receiptPreview" alt="Receipt preview">
+      <div class="result-box" id="voiceResult" style="display:none">
+        <div class="result-row">
+          <span class="result-label">Spoken text</span>
+          <span class="result-value" id="spokenText"></span>
+        </div>
+      </div>
+      <p class="note">
+        This first version only captures the receipt/voice input. Next we will send it
+        securely to the backend for OCR/AI extraction and then show an editable confirmation
+        before saving to Supabase.
+      </p>
+    </div>
+  </section>
+</main>
+
+<script>
+const receiptInput = document.getElementById("receiptInput");
+const preview = document.getElementById("preview");
+const receiptPreview = document.getElementById("receiptPreview");
+const previewTitle = document.getElementById("previewTitle");
+
+receiptInput.addEventListener("change", () => {
+  const file = receiptInput.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    alert("Please select an image.");
+    return;
+  }
+
+  receiptPreview.src = URL.createObjectURL(file);
+  receiptPreview.style.display = "block";
+  previewTitle.textContent = "Receipt captured";
+  preview.classList.add("show");
+});
+
+const voiceButton = document.getElementById("voiceButton");
+const voiceArea = document.getElementById("voiceArea");
+const voiceStatus = document.getElementById("voiceStatus");
+const startVoice = document.getElementById("startVoice");
+const stopVoice = document.getElementById("stopVoice");
+const voiceResult = document.getElementById("voiceResult");
+const spokenText = document.getElementById("spokenText");
+
+let recognition = null;
+
+voiceButton.addEventListener("click", () => {
+  voiceArea.classList.toggle("show");
+  if (voiceArea.classList.contains("show")) {
+    voiceStatus.textContent = "Tap Start and speak naturally.";
+  }
+});
+
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRecognition) {
+  startVoice.disabled = true;
+  voiceStatus.textContent =
+    "Voice input is not supported by this browser. Try Chrome or Edge.";
+} else {
+  recognition = new SpeechRecognition();
+  recognition.lang = "en-GB";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+
+  recognition.onstart = () => {
+    startVoice.disabled = true;
+    stopVoice.disabled = false;
+    voiceStatus.textContent = "Listening… speak your expense.";
+  };
+
+  recognition.onresult = (event) => {
+    let text = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      text += event.results[i][0].transcript;
+    }
+    voiceStatus.textContent = text;
+    spokenText.textContent = text;
+    voiceResult.style.display = "block";
+    previewTitle.textContent = "Voice submission";
+    receiptPreview.style.display = "none";
+    preview.classList.add("show");
+  };
+
+  recognition.onerror = (event) => {
+    voiceStatus.textContent = "Voice input error: " + event.error;
+  };
+
+  recognition.onend = () => {
+    startVoice.disabled = false;
+    stopVoice.disabled = true;
+  };
+
+  startVoice.addEventListener("click", () => recognition.start());
+  stopVoice.addEventListener("click", () => recognition.stop());
+}
+</script>
+</body>
+</html>
