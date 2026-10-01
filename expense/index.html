@@ -84,7 +84,7 @@ header p{margin:7px 0 0;color:var(--muted)}
 .input-button strong{font-size:18px}
 .input-button span{font-size:13px;color:var(--muted);margin-top:5px}
 input[type=file]{display:none}
-.voice-area{margin-top:18px;display:none}
+.voice-area{margin-top:10px;display:none}
 .voice-area.show{display:block}
 .voice-status{
   padding:15px 16px;
@@ -281,140 +281,118 @@ button:disabled{opacity:.45;cursor:not-allowed}
   .account-bar{align-items:flex-start}
 }
 
-/* One-line capture bar: receipt on the left, hold-to-record on the right. */
+/* Separate capture controls: receipt function + independent far-right mic. */
 .input-bar{
   display:flex;
-  align-items:stretch;
-  gap:16px;
-  margin:26px 0 8px;
-}
-.receipt-action,
-.hold-action{
-  min-height:132px;
-  border:1px solid #d8dfd8;
-  border-radius:22px;
-  background:#edf3ed;
-  display:flex;
   align-items:center;
-  cursor:pointer;
-  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-  -webkit-tap-highlight-color:transparent;
+  gap:14px;
+  margin:26px 0 8px;
 }
 .receipt-action{
   flex:1 1 auto;
-  padding:22px 28px;
-  gap:22px;
+  min-height:110px;
+  padding:20px 24px;
+  border:1px solid #d8dfd8;
+  border-radius:20px;
+  background:#edf3ed;
+  display:flex;
+  align-items:center;
+  gap:18px;
+  cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease;
+  -webkit-tap-highlight-color:transparent;
 }
-.hold-action{
-  flex:0 0 36%;
-  min-width:270px;
-  margin-left:auto;
-  justify-content:flex-end;
-  gap:14px;
-  padding:18px 8px 18px 18px;
-  touch-action:none;
-}
-.receipt-action:hover,
-.hold-action:hover{
+.receipt-action:hover{
   box-shadow:0 7px 18px rgba(30,55,46,.08);
 }
 .receipt-action:active{
   transform:scale(.995);
 }
-.receipt-action:focus-visible,
-.hold-action:focus-visible{
+.receipt-action:focus-visible{
   outline:3px solid rgba(76,107,138,.25);
   outline-offset:2px;
 }
-.action-copy h2,
-.hold-copy h2{
+.action-copy h2{
   margin:0 0 6px;
 }
-.action-copy p,
-.hold-copy p{
+.action-copy p{
   margin:0;
 }
-.hold-copy{
-  min-width:0;
-}
-.hold-copy p{
-  white-space:nowrap;
-}
-.hold-record-wrap.compact{
-  margin:0;
+.input-bar > .hold-record{
   flex:0 0 auto;
-}
-.hold-record-wrap.compact .hold-record{
+  margin-left:8px;
   width:86px;
   height:86px;
+  border-radius:50%;
+  border:1px solid #cfd8d1;
+  background:var(--ink);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   font-size:31px;
+  padding:0;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+  touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+  box-shadow:0 8px 18px rgba(23,59,50,.16);
+  transition:transform .08s ease, box-shadow .08s ease, background .08s ease;
 }
-@media (max-width: 700px){
+.input-bar > .hold-record:active,
+.input-bar > .hold-record.recording{
+  transform:scale(1.08);
+  box-shadow:0 10px 24px rgba(23,59,50,.24);
+  background:#0f2c25;
+}
+.input-bar > .hold-record:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+@media (max-width:700px){
   .input-bar{
-    gap:10px;
+    gap:8px;
     margin-top:18px;
   }
-  .receipt-action,
-  .hold-action{
-    min-height:96px;
-    border-radius:18px;
-  }
   .receipt-action{
-    padding:14px 14px;
-    gap:11px;
+    min-height:88px;
+    border-radius:17px;
+    padding:12px 13px;
+    gap:10px;
   }
   .receipt-action .input-icon{
     font-size:28px;
   }
-  .action-copy h2,
-  .hold-copy h2{
+  .action-copy h2{
     font-size:17px;
   }
-  .action-copy p,
-  .hold-copy p{
+  .action-copy p{
     font-size:11px;
   }
-  .hold-action{
-    flex:0 0 auto;
-    min-width:0;
-    width:48%;
-    margin-left:auto;
-    justify-content:flex-end;
-    gap:8px;
-    padding:10px 4px 10px 10px;
-  }
-  .hold-record-wrap.compact{
-    margin:0;
-  }
-  .hold-record-wrap.compact .hold-record{
-    width:70px;
-    height:70px;
-    font-size:25px;
+  .input-bar > .hold-record{
+    margin-left:4px;
+    width:72px;
+    height:72px;
+    font-size:26px;
   }
 }
-@media (max-width: 430px){
+@media (max-width:430px){
   .input-bar{
-    gap:8px;
+    gap:7px;
   }
   .receipt-action{
-    padding:11px 10px;
-  }
-  .hold-action{
-    width:50%;
-    margin-left:auto;
-    padding-left:8px;
+    padding:10px 9px;
   }
   .action-copy p{
     display:none;
   }
-  .hold-copy p{
-    white-space:normal;
-    line-height:1.2;
-    max-width:72px;
+  .action-copy h2{
+    font-size:16px;
   }
-  .hold-record-wrap.compact .hold-record{
-    width:64px;
-    height:64px;
+  .input-bar > .hold-record{
+    width:66px;
+    height:66px;
     font-size:23px;
   }
 }
@@ -456,7 +434,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
   <section class="input-card" id="expenseCard" style="display:none">
     <div class="input-bar">
-      <div class="receipt-action" id="scanCard" role="button" tabindex="0">
+      <div class="receipt-action" id="scanCard" role="button" tabindex="0" aria-label="Scan Receipt">
         <div class="input-icon">📷</div>
         <div class="action-copy">
           <h2>Scan Receipt</h2>
@@ -465,18 +443,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <input id="receiptInput" type="file" accept="image/*" capture="environment" hidden>
       </div>
 
-      <div class="hold-action" id="voiceButton" role="button" tabindex="0">
-        <div class="hold-copy">
-          <h2>Hold to Record</h2>
-          <p>English · മലയാളം · mixed</p>
-        </div>
-        <div class="hold-record-wrap compact">
-          <button class="hold-record" id="holdRecordButton" type="button"
-                  aria-label="Press and hold to record">🎤</button>
-        </div>
-      </div>
+      <button class="hold-record" id="voiceButton" type="button"
+              aria-label="Press and hold to record in English or Malayalam">🎤</button>
     </div>
       
+    <div class="voice-area" id="voiceArea">
+      <div class="voice-status" id="voiceStatus">
+        Press and hold the microphone while you speak.
+      </div>
       <div class="auth-message" id="voiceMessage"></div>
     </div>
 
@@ -1083,7 +1057,7 @@ extractReceiptButton.addEventListener("click", testExtractionFunction);
 const voiceButton = document.getElementById("voiceButton");
 const voiceArea = document.getElementById("voiceArea");
 const voiceStatus = document.getElementById("voiceStatus");
-const holdRecordButton = document.getElementById("holdRecordButton");
+const holdRecordButton = voiceButton;
 const voiceMessage = document.getElementById("voiceMessage");
 const voiceResult = document.getElementById("voiceResult");
 const spokenText = document.getElementById("spokenText");
@@ -1104,6 +1078,7 @@ const MAX_RECORDING_SECONDS = 60;
 const MIN_RECORDING_MS = 350;
 
 function setVoiceMessage(message, isError = false) {
+  if (!voiceMessage) return;
   voiceMessage.textContent = message;
   voiceMessage.style.color = isError ? "#a33a2b" : "#245b3d";
 }
@@ -1488,13 +1463,7 @@ async function transcribeAndParseVoice(audioBlob, mimeType) {
 }
 
 voiceButton.addEventListener("click", (event) => {
-  if (event.target === holdRecordButton) return;
-
-  voiceArea.classList.add("show");
-  voiceStatus.textContent =
-    "Press and hold the microphone while you speak.";
-  setVoiceMessage("");
-  holdRecordButton.focus({ preventScroll: true });
+  event.preventDefault();
 });
 
 scanCard.addEventListener("keydown", (event) => {
@@ -1504,14 +1473,20 @@ scanCard.addEventListener("keydown", (event) => {
   }
 });
 
-voiceButton.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" || event.key === " ") {
+voiceButton.addEventListener("keydown", async (event) => {
+  if ((event.key === " " || event.key === "Enter") &&
+      !event.repeat &&
+      !isHoldingRecord &&
+      !isProcessingVoice) {
     event.preventDefault();
-    voiceArea.classList.add("show");
-    voiceStatus.textContent =
-      "Press and hold the microphone while you speak.";
-    setVoiceMessage("");
-    holdRecordButton.focus({ preventScroll: true });
+    await startRecording();
+  }
+});
+
+voiceButton.addEventListener("keyup", (event) => {
+  if ((event.key === " " || event.key === "Enter") && isHoldingRecord) {
+    event.preventDefault();
+    stopRecordingAndSend();
   }
 });
 
