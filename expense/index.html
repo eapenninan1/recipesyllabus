@@ -95,6 +95,49 @@ input[type=file]{display:none}
   min-height:52px;
 }
 .voice-actions{display:flex;gap:10px;margin-top:12px}
+
+.hold-record-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  margin-top:14px;
+}
+.hold-record{
+  width:92px;
+  height:92px;
+  border-radius:50%;
+  border:1px solid #cfd8d1;
+  background:var(--ink);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
+  padding:0;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+  touch-action:none;
+  box-shadow:0 8px 18px rgba(23,59,50,.16);
+  transition:transform .08s ease, box-shadow .08s ease, background .08s ease;
+}
+.hold-record:active,
+.hold-record.recording{
+  transform:scale(1.08);
+  box-shadow:0 10px 24px rgba(23,59,50,.24);
+  background:#0f2c25;
+}
+.hold-record:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.hold-hint{
+  color:var(--muted);
+  font-size:13px;
+  text-align:center;
+}
+
 button{
   border:0;
   border-radius:12px;
@@ -291,11 +334,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <input id="receiptInput" type="file" accept="image/*" capture="environment">
 
     <div class="voice-area" id="voiceArea">
-      <div class="voice-status" id="voiceStatus">Tap Start and speak naturally in English, മലയാളം, or both.</div>
-      <div class="voice-actions">
-        <button class="primary" id="startVoice" type="button">Start</button>
-        <button class="secondary" id="stopVoice" type="button" disabled>Stop</button>
-        <button class="secondary" id="parseVoiceButton" type="button" disabled>Parse Expense</button>
+      <div class="voice-status" id="voiceStatus">Press and hold the microphone while you speak.</div>
+      <div class="hold-record-wrap">
+        <button class="hold-record" id="holdRecordButton" type="button" aria-label="Press and hold to record">
+          🎤
+        </button>
+        <div class="hold-hint">Press and hold → speak → release to send automatically</div>
       </div>
       <div class="auth-message" id="voiceMessage"></div>
     </div>
@@ -899,12 +943,11 @@ async function testExtractionFunction() {
 extractReceiptButton.addEventListener("click", testExtractionFunction);
 
 
+
 const voiceButton = document.getElementById("voiceButton");
 const voiceArea = document.getElementById("voiceArea");
 const voiceStatus = document.getElementById("voiceStatus");
-const startVoice = document.getElementById("startVoice");
-const stopVoice = document.getElementById("stopVoice");
-const parseVoiceButton = document.getElementById("parseVoiceButton");
+const holdRecordButton = document.getElementById("holdRecordButton");
 const voiceMessage = document.getElementById("voiceMessage");
 const voiceResult = document.getElementById("voiceResult");
 const spokenText = document.getElementById("spokenText");
@@ -916,9 +959,13 @@ let recordedMimeType = "";
 let recordedVoiceObjectUrl = null;
 let recordingTimer = null;
 let recordingStartedAt = 0;
+let isHoldingRecord = false;
+let isProcessingVoice = false;
 let finalVoiceTranscript = "";
+let currentAudioBlob = null;
 
 const MAX_RECORDING_SECONDS = 60;
+const MIN_RECORDING_MS = 350;
 
 function setVoiceMessage(message, isError = false) {
   voiceMessage.textContent = message;
@@ -970,20 +1017,24 @@ function clearRecordedAudio() {
   }
   recordedChunks = [];
   recordedMimeType = "";
+  currentAudioBlob = null;
 }
 
 function updateRecordingTimer() {
   const elapsed = Math.floor((Date.now() - recordingStartedAt) / 1000);
   const remaining = Math.max(0, MAX_RECORDING_SECONDS - elapsed);
+
   voiceStatus.textContent =
     `Recording… ${elapsed}s · ${remaining}s remaining`;
 
   if (elapsed >= MAX_RECORDING_SECONDS) {
-    stopRecording();
+    stopRecordingAndSend();
   }
 }
 
 async function startRecording() {
+  if (isProcessingVoice) return;
+
   if (!navigator.mediaDevices?.getUserMedia) {
     setVoiceMessage(
       "This browser cannot access the microphone. You can still use Scan Receipt.",
@@ -1006,9 +1057,16 @@ async function startRecording() {
   finalVoiceTranscript = "";
   currentVoiceText = "";
   currentInputMethod = "voice";
+  isHoldingRecord = true;
 
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
 
     recordedMimeType = chooseRecordingMimeType();
 
@@ -1024,24 +1082,30 @@ async function startRecording() {
       }
     });
 
-    mediaRecorder.addEventListener("stop", handleRecordingStopped, { once: true });
+    mediaRecorder.addEventListener(
+      "stop",
+      handleRecordingStopped,
+      { once: true }
+    );
 
     mediaRecorder.start(250);
     recordingStartedAt = Date.now();
 
-    startVoice.disabled = true;
-    stopVoice.disabled = false;
-    parseVoiceButton.disabled = true;
+    holdRecordButton.classList.add("recording");
+    holdRecordButton.textContent = "⏺";
+    holdRecordButton.setAttribute("aria-label", "Release to send recording");
 
     voiceResult.style.display = "none";
     voiceStatus.textContent =
       "Recording… speak in English, മലയാളം, or mix both.";
-    setVoiceMessage("Recording is active. Tap Stop when you finish.");
+    setVoiceMessage("Keep holding… release your finger to send automatically.");
 
     clearInterval(recordingTimer);
     recordingTimer = setInterval(updateRecordingTimer, 250);
   } catch (error) {
     console.error("Microphone error:", error);
+    isHoldingRecord = false;
+
     if (mediaStream) {
       mediaStream.getTracks().forEach((track) => track.stop());
       mediaStream = null;
@@ -1053,24 +1117,30 @@ async function startRecording() {
         : (error?.message || "Unable to start microphone recording.");
 
     setVoiceMessage(message, true);
-    startVoice.disabled = false;
-    stopVoice.disabled = true;
   }
 }
 
-function stopRecording() {
+function stopRecordingAndSend() {
   if (!mediaRecorder || mediaRecorder.state !== "recording") return;
 
+  isHoldingRecord = false;
   clearInterval(recordingTimer);
   recordingTimer = null;
 
-  stopVoice.disabled = true;
-  voiceStatus.textContent = "Finishing recording…";
+  holdRecordButton.classList.remove("recording");
+  holdRecordButton.textContent = "🎤";
+  holdRecordButton.disabled = true;
+  holdRecordButton.setAttribute("aria-label", "Processing recording");
+
+  voiceStatus.textContent = "Sending…";
+  setVoiceMessage("Recording finished. Sending automatically…");
 
   try {
     mediaRecorder.stop();
   } catch (error) {
     console.error("Recorder stop error:", error);
+    holdRecordButton.disabled = false;
+    setVoiceMessage(error.message || "Unable to stop recording.", true);
   }
 
   if (mediaStream) {
@@ -1079,12 +1149,9 @@ function stopRecording() {
   }
 }
 
-async function handleRecordingStopped() {
+function handleRecordingStopped() {
   clearInterval(recordingTimer);
   recordingTimer = null;
-
-  startVoice.disabled = false;
-  stopVoice.disabled = true;
 
   const mimeType =
     recordedMimeType ||
@@ -1096,7 +1163,20 @@ async function handleRecordingStopped() {
   const audioBlob = new Blob(recordedChunks, { type: mimeType });
 
   if (!audioBlob.size) {
+    holdRecordButton.disabled = false;
+    voiceStatus.textContent = "No audio captured.";
     setVoiceMessage("No audio was captured. Please try again.", true);
+    return;
+  }
+
+  currentAudioBlob = audioBlob;
+
+  const duration = Date.now() - recordingStartedAt;
+  if (duration < MIN_RECORDING_MS) {
+    holdRecordButton.disabled = false;
+    voiceStatus.textContent = "Recording was too short.";
+    setVoiceMessage("Hold the button a little longer and try again.", true);
+    clearRecordedAudio();
     return;
   }
 
@@ -1106,30 +1186,14 @@ async function handleRecordingStopped() {
 
   recordedVoiceObjectUrl = URL.createObjectURL(audioBlob);
 
-  voiceStatus.textContent =
-    `Recording ready · ${(audioBlob.size / 1024).toFixed(0)} KB`;
-
-  spokenText.textContent =
-    "Audio recorded. Click Transcribe & Parse.";
+  spokenText.textContent = "Processing recording…";
   voiceResult.style.display = "block";
   previewTitle.textContent = "Voice expense";
   receiptPreview.style.display = "none";
   preview.classList.add("show");
 
-  // The button label stays simple, but its action is now the full
-  // upload → transcription → expense parsing pipeline.
-  parseVoiceButton.disabled = false;
-  parseVoiceButton.textContent = "Transcribe & Parse";
-
-  // Store the blob on the button object for the next click.
-  parseVoiceButton._audioBlob = audioBlob;
-
-  document.getElementById("receiptNote").textContent =
-    "Your recording is ready. Nothing is saved until you review and confirm the extracted expense.";
-
-  setVoiceMessage(
-    "Recording finished. Tap Transcribe & Parse."
-  );
+  // Automatically continue: upload → transcription → expense parsing.
+  transcribeAndParseVoice(audioBlob, mimeType);
 }
 
 async function uploadVoiceRecording(audioBlob, mimeType) {
@@ -1217,55 +1281,36 @@ async function parseVoiceTranscript(transcript) {
   return data.extraction;
 }
 
-async function transcribeAndParseVoice() {
-  const audioBlob = parseVoiceButton._audioBlob;
+async function transcribeAndParseVoice(audioBlob, mimeType) {
+  if (isProcessingVoice) return;
 
-  if (!audioBlob || !audioBlob.size) {
-    setVoiceMessage("Record your expense first.", true);
-    return;
-  }
-
-  parseVoiceButton.disabled = true;
-  startVoice.disabled = true;
-  stopVoice.disabled = true;
-  parseVoiceButton.textContent = "Transcribing…";
-  setVoiceMessage(
-    "Uploading your recording and automatically detecting the spoken language…"
-  );
-
-  let storagePath = null;
+  isProcessingVoice = true;
+  currentInputMethod = "voice";
+  currentReceiptId = null;
 
   try {
-    const mimeType = recordedMimeType || audioBlob.type || "audio/webm";
-
-    const uploaded = await uploadVoiceRecording(audioBlob, mimeType);
-    storagePath = uploaded.storagePath;
-
     setVoiceMessage(
-      "Transcribing English / മലയാളം audio…"
+      "Uploading recording and detecting English / മലയാളം automatically…"
     );
     voiceStatus.textContent = "Transcribing…";
 
+    const uploaded = await uploadVoiceRecording(audioBlob, mimeType);
+
     const transcript = await transcribeVoiceRecording(
-      storagePath,
+      uploaded.storagePath,
       mimeType
     );
 
     finalVoiceTranscript = transcript.trim();
     currentVoiceText = finalVoiceTranscript;
-
     spokenText.textContent = finalVoiceTranscript;
-    voiceResult.style.display = "block";
 
-    setVoiceMessage("Transcription complete. Parsing the expense…");
+    setVoiceMessage("Transcription complete. Parsing expense…");
     voiceStatus.textContent = "Parsing expense…";
 
     const extraction = await parseVoiceTranscript(finalVoiceTranscript);
 
-    currentInputMethod = "voice";
-    currentReceiptId = null;
     currentExtraction = extraction;
-
     renderReview(extraction);
 
     previewTitle.textContent = "Voice expense";
@@ -1273,51 +1318,87 @@ async function transcribeAndParseVoice() {
     preview.classList.add("show");
 
     setVoiceMessage(
-      "Voice expense parsed successfully. Review the details below before saving."
+      "Expense parsed successfully. Review the details below before saving."
     );
 
     document.getElementById("receiptNote").textContent =
       extraction?.notes ||
       "Review the extracted expense details. Nothing is saved until you confirm.";
 
-    parseVoiceButton.textContent = "Transcribed";
-    reviewCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    voiceStatus.textContent = "Ready for review";
+    reviewCard.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
   } catch (error) {
     console.error("Voice pipeline error:", error);
+
     setVoiceMessage(
       error?.message || "Unable to process the voice recording.",
       true
     );
-    parseVoiceButton.textContent = "Try Again";
+
+    voiceStatus.textContent = "Try again";
   } finally {
-    startVoice.disabled = false;
-    stopVoice.disabled = true;
-    parseVoiceButton.disabled = !parseVoiceButton._audioBlob;
+    isProcessingVoice = false;
+    holdRecordButton.disabled = false;
+    holdRecordButton.classList.remove("recording");
+    holdRecordButton.textContent = "🎤";
+    holdRecordButton.setAttribute(
+      "aria-label",
+      "Press and hold to record"
+    );
   }
 }
 
 voiceButton.addEventListener("click", () => {
-  voiceArea.classList.toggle("show");
-
-  if (voiceArea.classList.contains("show")) {
-    voiceStatus.textContent =
-      "Tap Start and speak naturally in English, മലയാളം, or both.";
-    setVoiceMessage("");
-    parseVoiceButton.textContent = "Transcribe & Parse";
-  }
+  voiceArea.classList.add("show");
+  voiceStatus.textContent =
+    "Press and hold the microphone while you speak.";
+  setVoiceMessage("");
+  holdRecordButton.focus({ preventScroll: true });
 });
 
 if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-  startVoice.disabled = true;
-  stopVoice.disabled = true;
-  parseVoiceButton.disabled = true;
+  holdRecordButton.disabled = true;
 
   voiceStatus.textContent =
     "Voice recording is not supported here. Please use a modern browser or Scan Receipt.";
+  setVoiceMessage(
+    "Try Chrome, Safari, Firefox, Edge, Opera, or another modern browser.",
+    true
+  );
 } else {
-  startVoice.addEventListener("click", startRecording);
-  stopVoice.addEventListener("click", stopRecording);
-  parseVoiceButton.addEventListener("click", transcribeAndParseVoice);
+  // Pointer Events cover touch, mouse and stylus with one implementation.
+  holdRecordButton.addEventListener("pointerdown", async (event) => {
+    event.preventDefault();
+
+    if (isProcessingVoice || isHoldingRecord) return;
+
+    try {
+      holdRecordButton.setPointerCapture(event.pointerId);
+    } catch (_) {}
+
+    await startRecording();
+  });
+
+  const releaseRecording = (event) => {
+    event?.preventDefault?.();
+
+    if (!isHoldingRecord) return;
+    stopRecordingAndSend();
+  };
+
+  holdRecordButton.addEventListener("pointerup", releaseRecording);
+  holdRecordButton.addEventListener("pointercancel", releaseRecording);
+  holdRecordButton.addEventListener("lostpointercapture", () => {
+    if (isHoldingRecord) stopRecordingAndSend();
+  });
+
+  // Prevent the context menu on long press.
+  holdRecordButton.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
 }
 </script>
 </body>
