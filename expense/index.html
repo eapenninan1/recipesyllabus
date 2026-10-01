@@ -218,16 +218,19 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div class="preview" id="preview">
       <h2 id="previewTitle">Submitted receipt</h2>
       <img class="receipt-preview" id="receiptPreview" alt="Receipt preview">
+      <div id="receiptUploadArea" style="display:none;margin-top:14px">
+        <button class="primary" id="uploadReceiptButton" type="button">Upload Receipt</button>
+        <div class="auth-message" id="receiptUploadMessage"></div>
+      </div>
       <div class="result-box" id="voiceResult" style="display:none">
         <div class="result-row">
           <span class="result-label">Spoken text</span>
           <span class="result-value" id="spokenText"></span>
         </div>
       </div>
-      <p class="note">
-        This first version only captures the receipt/voice input. Next we will send it
-        securely to the backend for OCR/AI extraction and then show an editable confirmation
-        before saving to Supabase.
+      <p class="note" id="receiptNote">
+        Receipt upload is the first storage step. OCR/AI extraction will be added after
+        the image upload and receipt record are working.
       </p>
     </div>
   </section>
@@ -337,6 +340,16 @@ const receiptInput = document.getElementById("receiptInput");
 const preview = document.getElementById("preview");
 const receiptPreview = document.getElementById("receiptPreview");
 const previewTitle = document.getElementById("previewTitle");
+const receiptUploadArea = document.getElementById("receiptUploadArea");
+const uploadReceiptButton = document.getElementById("uploadReceiptButton");
+const receiptUploadMessage = document.getElementById("receiptUploadMessage");
+
+let selectedReceiptFile = null;
+
+function setReceiptUploadMessage(message, isError = false) {
+  receiptUploadMessage.textContent = message;
+  receiptUploadMessage.style.color = isError ? "#a33a2b" : "#245b3d";
+}
 
 receiptInput.addEventListener("change", () => {
   const file = receiptInput.files?.[0];
@@ -344,14 +357,98 @@ receiptInput.addEventListener("change", () => {
 
   if (!file.type.startsWith("image/")) {
     alert("Please select an image.");
+    receiptInput.value = "";
     return;
   }
 
+  selectedReceiptFile = file;
   receiptPreview.src = URL.createObjectURL(file);
   receiptPreview.style.display = "block";
   previewTitle.textContent = "Receipt captured";
   preview.classList.add("show");
+  receiptUploadArea.style.display = "block";
+  uploadReceiptButton.disabled = false;
+  uploadReceiptButton.textContent = "Upload Receipt";
+  setReceiptUploadMessage("");
 });
+
+function getSafeExtension(file) {
+  const parts = (file.name || "").split(".");
+  const ext = parts.length > 1 ? parts.pop().toLowerCase().replace(/[^a-z0-9]/g, "") : "";
+  const allowed = new Set(["jpg", "jpeg", "png", "webp", "heic", "heif"]);
+  return allowed.has(ext) ? ext : "jpg";
+}
+
+async function uploadReceipt() {
+  if (!selectedReceiptFile) {
+    setReceiptUploadMessage("Choose a receipt image first.", true);
+    return;
+  }
+
+  uploadReceiptButton.disabled = true;
+  uploadReceiptButton.textContent = "Uploading…";
+  setReceiptUploadMessage("");
+
+  try {
+    const { data: { session }, error: sessionError } =
+      await supabaseClient.auth.getSession();
+
+    if (sessionError) throw sessionError;
+    if (!session?.user) {
+      throw new Error("Your session has expired. Please sign in again.");
+    }
+
+    const userId = session.user.id;
+    const extension = getSafeExtension(selectedReceiptFile);
+    const fileId = crypto.randomUUID();
+    const storagePath = `${userId}/${fileId}.${extension}`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from("receipts")
+      .upload(storagePath, selectedReceiptFile, {
+        cacheControl: "3600",
+        contentType: selectedReceiptFile.type || "image/jpeg",
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: receiptRow, error: receiptError } = await supabaseClient
+      .from("receipts")
+      .insert({
+        user_id: userId,
+        storage_path: storagePath,
+        original_filename: selectedReceiptFile.name || null,
+        mime_type: selectedReceiptFile.type || null,
+        extraction_status: "pending",
+        captured_at: new Date().toISOString()
+      })
+      .select("id, storage_path, extraction_status")
+      .single();
+
+    if (receiptError) {
+      await supabaseClient.storage.from("receipts").remove([storagePath]);
+      throw receiptError;
+    }
+
+    setReceiptUploadMessage(
+      `Uploaded successfully · receipt ${receiptRow.id.substring(0, 8)}…`
+    );
+    uploadReceiptButton.textContent = "Uploaded";
+    document.getElementById("receiptNote").textContent =
+      "Receipt is safely stored. Next we will add OCR/AI extraction and the review screen.";
+  } catch (error) {
+    console.error("Receipt upload error:", error);
+    setReceiptUploadMessage(
+      error.message || "Unable to upload the receipt.",
+      true
+    );
+    uploadReceiptButton.disabled = false;
+    uploadReceiptButton.textContent = "Try Again";
+  }
+}
+
+uploadReceiptButton.addEventListener("click", uploadReceipt);
 
 const voiceButton = document.getElementById("voiceButton");
 const voiceArea = document.getElementById("voiceArea");
