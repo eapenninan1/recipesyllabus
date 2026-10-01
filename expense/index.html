@@ -637,6 +637,7 @@ const receiptUploadArea = document.getElementById("receiptUploadArea");
 const uploadReceiptButton = document.getElementById("uploadReceiptButton");
 const extractReceiptButton = document.getElementById("extractReceiptButton");
 const receiptUploadMessage = document.getElementById("receiptUploadMessage");
+const scanCard = document.getElementById("scanCard");
 
 let selectedReceiptFile = null;
 let currentReceiptId = null;
@@ -1464,6 +1465,14 @@ async function transcribeAndParseVoice(audioBlob, mimeType) {
 
 voiceButton.addEventListener("click", (event) => {
   event.preventDefault();
+});
+
+scanCard.addEventListener("click", (event) => {
+  // The file input is intentionally hidden, so open it explicitly.
+  // This keeps the receipt action completely independent from the microphone.
+  if (event.target !== receiptInput) {
+    receiptInput.click();
+  }
 });
 
 scanCard.addEventListener("keydown", (event) => {
