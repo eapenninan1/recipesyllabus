@@ -291,7 +291,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <input id="receiptInput" type="file" accept="image/*" capture="environment">
 
     <div class="voice-area" id="voiceArea">
-      <div class="voice-status" id="voiceStatus">Tap Start and speak naturally.</div>
+      <div class="voice-status" id="voiceStatus">Tap Start and speak naturally in English, മലയാളം, or both.</div>
       <div class="voice-actions">
         <button class="primary" id="startVoice" type="button">Start</button>
         <button class="secondary" id="stopVoice" type="button" disabled>Stop</button>
@@ -898,6 +898,7 @@ async function testExtractionFunction() {
 
 extractReceiptButton.addEventListener("click", testExtractionFunction);
 
+
 const voiceButton = document.getElementById("voiceButton");
 const voiceArea = document.getElementById("voiceArea");
 const voiceStatus = document.getElementById("voiceStatus");
@@ -908,8 +909,16 @@ const voiceMessage = document.getElementById("voiceMessage");
 const voiceResult = document.getElementById("voiceResult");
 const spokenText = document.getElementById("spokenText");
 
-let recognition = null;
+let mediaRecorder = null;
+let mediaStream = null;
+let recordedChunks = [];
+let recordedMimeType = "";
+let recordedVoiceObjectUrl = null;
+let recordingTimer = null;
+let recordingStartedAt = 0;
 let finalVoiceTranscript = "";
+
+const MAX_RECORDING_SECONDS = 60;
 
 function setVoiceMessage(message, isError = false) {
   voiceMessage.textContent = message;
@@ -926,157 +935,389 @@ function getLocalTimeString() {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
 }
 
-async function parseVoiceExpense() {
-  const text = finalVoiceTranscript.trim();
+function chooseRecordingMimeType() {
+  if (!window.MediaRecorder) return "";
 
-  if (!text) {
-    setVoiceMessage("No spoken expense was captured.", true);
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/mp4",
+    "audio/m4a"
+  ];
+
+  for (const type of candidates) {
+    try {
+      if (MediaRecorder.isTypeSupported(type)) return type;
+    } catch (_) {}
+  }
+
+  return "";
+}
+
+function fileExtensionForMimeType(mimeType) {
+  const type = (mimeType || "").toLowerCase();
+  if (type.includes("ogg")) return "ogg";
+  if (type.includes("mp4") || type.includes("m4a")) return "m4a";
+  if (type.includes("wav")) return "wav";
+  return "webm";
+}
+
+function clearRecordedAudio() {
+  if (recordedVoiceObjectUrl) {
+    URL.revokeObjectURL(recordedVoiceObjectUrl);
+    recordedVoiceObjectUrl = null;
+  }
+  recordedChunks = [];
+  recordedMimeType = "";
+}
+
+function updateRecordingTimer() {
+  const elapsed = Math.floor((Date.now() - recordingStartedAt) / 1000);
+  const remaining = Math.max(0, MAX_RECORDING_SECONDS - elapsed);
+  voiceStatus.textContent =
+    `Recording… ${elapsed}s · ${remaining}s remaining`;
+
+  if (elapsed >= MAX_RECORDING_SECONDS) {
+    stopRecording();
+  }
+}
+
+async function startRecording() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setVoiceMessage(
+      "This browser cannot access the microphone. You can still use Scan Receipt.",
+      true
+    );
+    return;
+  }
+
+  if (!window.MediaRecorder) {
+    setVoiceMessage(
+      "Voice recording is not supported by this browser.",
+      true
+    );
+    return;
+  }
+
+  if (mediaRecorder?.state === "recording") return;
+
+  clearRecordedAudio();
+  finalVoiceTranscript = "";
+  currentVoiceText = "";
+  currentInputMethod = "voice";
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    recordedMimeType = chooseRecordingMimeType();
+
+    mediaRecorder = recordedMimeType
+      ? new MediaRecorder(mediaStream, { mimeType: recordedMimeType })
+      : new MediaRecorder(mediaStream);
+
+    recordedChunks = [];
+
+    mediaRecorder.addEventListener("dataavailable", (event) => {
+      if (event.data && event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    });
+
+    mediaRecorder.addEventListener("stop", handleRecordingStopped, { once: true });
+
+    mediaRecorder.start(250);
+    recordingStartedAt = Date.now();
+
+    startVoice.disabled = true;
+    stopVoice.disabled = false;
+    parseVoiceButton.disabled = true;
+
+    voiceResult.style.display = "none";
+    voiceStatus.textContent =
+      "Recording… speak in English, മലയാളം, or mix both.";
+    setVoiceMessage("Recording is active. Tap Stop when you finish.");
+
+    clearInterval(recordingTimer);
+    recordingTimer = setInterval(updateRecordingTimer, 250);
+  } catch (error) {
+    console.error("Microphone error:", error);
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      mediaStream = null;
+    }
+
+    const message =
+      error?.name === "NotAllowedError"
+        ? "Microphone permission was denied. Allow microphone access for recipesyllabus.in and try again."
+        : (error?.message || "Unable to start microphone recording.");
+
+    setVoiceMessage(message, true);
+    startVoice.disabled = false;
+    stopVoice.disabled = true;
+  }
+}
+
+function stopRecording() {
+  if (!mediaRecorder || mediaRecorder.state !== "recording") return;
+
+  clearInterval(recordingTimer);
+  recordingTimer = null;
+
+  stopVoice.disabled = true;
+  voiceStatus.textContent = "Finishing recording…";
+
+  try {
+    mediaRecorder.stop();
+  } catch (error) {
+    console.error("Recorder stop error:", error);
+  }
+
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    mediaStream = null;
+  }
+}
+
+async function handleRecordingStopped() {
+  clearInterval(recordingTimer);
+  recordingTimer = null;
+
+  startVoice.disabled = false;
+  stopVoice.disabled = true;
+
+  const mimeType =
+    recordedMimeType ||
+    mediaRecorder?.mimeType ||
+    "audio/webm";
+
+  recordedMimeType = mimeType;
+
+  const audioBlob = new Blob(recordedChunks, { type: mimeType });
+
+  if (!audioBlob.size) {
+    setVoiceMessage("No audio was captured. Please try again.", true);
+    return;
+  }
+
+  if (recordedVoiceObjectUrl) {
+    URL.revokeObjectURL(recordedVoiceObjectUrl);
+  }
+
+  recordedVoiceObjectUrl = URL.createObjectURL(audioBlob);
+
+  voiceStatus.textContent =
+    `Recording ready · ${(audioBlob.size / 1024).toFixed(0)} KB`;
+
+  spokenText.textContent =
+    "Audio recorded. Click Transcribe & Parse.";
+  voiceResult.style.display = "block";
+  previewTitle.textContent = "Voice expense";
+  receiptPreview.style.display = "none";
+  preview.classList.add("show");
+
+  // The button label stays simple, but its action is now the full
+  // upload → transcription → expense parsing pipeline.
+  parseVoiceButton.disabled = false;
+  parseVoiceButton.textContent = "Transcribe & Parse";
+
+  // Store the blob on the button object for the next click.
+  parseVoiceButton._audioBlob = audioBlob;
+
+  document.getElementById("receiptNote").textContent =
+    "Your recording is ready. Nothing is saved until you review and confirm the extracted expense.";
+
+  setVoiceMessage(
+    "Recording finished. Tap Transcribe & Parse."
+  );
+}
+
+async function uploadVoiceRecording(audioBlob, mimeType) {
+  const {
+    data: { session },
+    error: sessionError
+  } = await supabaseClient.auth.getSession();
+
+  if (sessionError) throw sessionError;
+
+  if (!session?.user) {
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
+  const userId = session.user.id;
+  const extension = fileExtensionForMimeType(mimeType);
+  const fileId = crypto.randomUUID();
+  const storagePath = `${userId}/${fileId}.${extension}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from("voice-recordings")
+    .upload(storagePath, audioBlob, {
+      cacheControl: "300",
+      contentType: mimeType,
+      upsert: false
+    });
+
+  if (uploadError) throw uploadError;
+
+  return { userId, storagePath };
+}
+
+async function transcribeVoiceRecording(storagePath, mimeType) {
+  const { data, error } = await supabaseClient.functions.invoke(
+    "transcribe-voice-expense",
+    {
+      body: {
+        storage_path: storagePath,
+        mime_type: mimeType
+      }
+    }
+  );
+
+  if (error) throw error;
+
+  if (!data?.ok) {
+    throw new Error(
+      data?.error ||
+      `Transcription failed at ${data?.stage || "unknown stage"}.`
+    );
+  }
+
+  if (!data?.transcript) {
+    throw new Error("Transcription returned no text.");
+  }
+
+  return data.transcript;
+}
+
+async function parseVoiceTranscript(transcript) {
+  const { data, error } = await supabaseClient.functions.invoke(
+    "parse-voice-expense",
+    {
+      body: {
+        spoken_text: transcript,
+        local_date: getLocalDateString(),
+        local_time: getLocalTimeString()
+      }
+    }
+  );
+
+  if (error) throw error;
+
+  if (!data?.ok) {
+    throw new Error(
+      data?.error ||
+      `Voice parser failed at ${data?.stage || "unknown stage"}.`
+    );
+  }
+
+  if (!data?.extraction) {
+    throw new Error("Voice parser returned no structured extraction.");
+  }
+
+  return data.extraction;
+}
+
+async function transcribeAndParseVoice() {
+  const audioBlob = parseVoiceButton._audioBlob;
+
+  if (!audioBlob || !audioBlob.size) {
+    setVoiceMessage("Record your expense first.", true);
     return;
   }
 
   parseVoiceButton.disabled = true;
-  parseVoiceButton.textContent = "Parsing…";
-  setVoiceMessage("Sending your spoken expense to the AI parser…");
+  startVoice.disabled = true;
+  stopVoice.disabled = true;
+  parseVoiceButton.textContent = "Transcribing…";
+  setVoiceMessage(
+    "Uploading your recording and automatically detecting the spoken language…"
+  );
+
+  let storagePath = null;
 
   try {
-    const { data, error } = await supabaseClient.functions.invoke(
-      "parse-voice-expense",
-      {
-        body: {
-          spoken_text: text,
-          local_date: getLocalDateString(),
-          local_time: getLocalTimeString()
-        }
-      }
+    const mimeType = recordedMimeType || audioBlob.type || "audio/webm";
+
+    const uploaded = await uploadVoiceRecording(audioBlob, mimeType);
+    storagePath = uploaded.storagePath;
+
+    setVoiceMessage(
+      "Transcribing English / മലയാളം audio…"
+    );
+    voiceStatus.textContent = "Transcribing…";
+
+    const transcript = await transcribeVoiceRecording(
+      storagePath,
+      mimeType
     );
 
-    if (error) throw error;
-    if (!data?.ok) {
-      throw new Error(data?.error || `Voice parser failed at ${data?.stage || "unknown stage"}.`);
-    }
-    if (!data?.extraction) {
-      throw new Error("Voice parser returned no structured extraction.");
-    }
+    finalVoiceTranscript = transcript.trim();
+    currentVoiceText = finalVoiceTranscript;
+
+    spokenText.textContent = finalVoiceTranscript;
+    voiceResult.style.display = "block";
+
+    setVoiceMessage("Transcription complete. Parsing the expense…");
+    voiceStatus.textContent = "Parsing expense…";
+
+    const extraction = await parseVoiceTranscript(finalVoiceTranscript);
 
     currentInputMethod = "voice";
     currentReceiptId = null;
-    renderReview(data.extraction);
+    currentExtraction = extraction;
 
-    spokenText.textContent = text;
-    voiceResult.style.display = "block";
+    renderReview(extraction);
+
     previewTitle.textContent = "Voice expense";
     receiptPreview.style.display = "none";
     preview.classList.add("show");
 
-    setVoiceMessage("Voice parsed successfully. Review the details below before saving.");
+    setVoiceMessage(
+      "Voice expense parsed successfully. Review the details below before saving."
+    );
+
     document.getElementById("receiptNote").textContent =
-      data.extraction?.notes ||
+      extraction?.notes ||
       "Review the extracted expense details. Nothing is saved until you confirm.";
 
+    parseVoiceButton.textContent = "Transcribed";
     reviewCard.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
-    console.error("Voice parser error:", error);
-    setVoiceMessage(error.message || "Unable to parse the spoken expense.", true);
+    console.error("Voice pipeline error:", error);
+    setVoiceMessage(
+      error?.message || "Unable to process the voice recording.",
+      true
+    );
+    parseVoiceButton.textContent = "Try Again";
   } finally {
-    parseVoiceButton.disabled = !finalVoiceTranscript.trim();
-    parseVoiceButton.textContent = "Parse Expense";
+    startVoice.disabled = false;
+    stopVoice.disabled = true;
+    parseVoiceButton.disabled = !parseVoiceButton._audioBlob;
   }
 }
 
 voiceButton.addEventListener("click", () => {
   voiceArea.classList.toggle("show");
+
   if (voiceArea.classList.contains("show")) {
-    voiceStatus.textContent = "Tap Start and speak naturally.";
+    voiceStatus.textContent =
+      "Tap Start and speak naturally in English, മലയാളം, or both.";
     setVoiceMessage("");
+    parseVoiceButton.textContent = "Transcribe & Parse";
   }
 });
 
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
-
-if (!SpeechRecognition) {
+if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
   startVoice.disabled = true;
   stopVoice.disabled = true;
   parseVoiceButton.disabled = true;
+
   voiceStatus.textContent =
-    "Voice input is not supported by this browser. Try Chrome or Edge.";
+    "Voice recording is not supported here. Please use a modern browser or Scan Receipt.";
 } else {
-  recognition = new SpeechRecognition();
-  recognition.lang = "en-GB";
-  recognition.interimResults = true;
-  recognition.continuous = false;
-
-  recognition.onstart = () => {
-    currentInputMethod = "voice";
-    currentVoiceText = "";
-    finalVoiceTranscript = "";
-    startVoice.disabled = true;
-    stopVoice.disabled = false;
-    parseVoiceButton.disabled = true;
-    setVoiceMessage("");
-    voiceStatus.textContent = "Listening… speak your expense.";
-  };
-
-  recognition.onresult = (event) => {
-    let finalText = "";
-    let interimText = "";
-
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalText += transcript;
-      } else {
-        interimText += transcript;
-      }
-    }
-
-    if (finalText) {
-      finalVoiceTranscript += finalText;
-    }
-
-    currentVoiceText = (finalVoiceTranscript + interimText).trim();
-    voiceStatus.textContent = currentVoiceText || "Listening…";
-    spokenText.textContent = currentVoiceText;
-    voiceResult.style.display = "block";
-    previewTitle.textContent = "Voice expense";
-    receiptPreview.style.display = "none";
-    preview.classList.add("show");
-    parseVoiceButton.disabled = !finalVoiceTranscript.trim();
-  };
-
-  recognition.onerror = (event) => {
-    voiceStatus.textContent = "Voice input error: " + event.error;
-    setVoiceMessage(`Voice input error: ${event.error}.`, true);
-    startVoice.disabled = false;
-    stopVoice.disabled = true;
-  };
-
-  recognition.onend = () => {
-    startVoice.disabled = false;
-    stopVoice.disabled = true;
-    parseVoiceButton.disabled = !finalVoiceTranscript.trim();
-
-    if (finalVoiceTranscript.trim()) {
-      currentVoiceText = finalVoiceTranscript.trim();
-      voiceStatus.textContent = currentVoiceText;
-      setVoiceMessage("Recording finished. Click Parse Expense.");
-    } else if (currentVoiceText.trim()) {
-      finalVoiceTranscript = currentVoiceText.trim();
-      parseVoiceButton.disabled = false;
-      setVoiceMessage("Recording finished. Click Parse Expense.");
-    }
-  };
-
-  startVoice.addEventListener("click", () => {
-    try {
-      recognition.start();
-    } catch (error) {
-      setVoiceMessage(error.message || "Unable to start voice input.", true);
-    }
-  });
-
-  stopVoice.addEventListener("click", () => recognition.stop());
-  parseVoiceButton.addEventListener("click", parseVoiceExpense);
+  startVoice.addEventListener("click", startRecording);
+  stopVoice.addEventListener("click", stopRecording);
+  parseVoiceButton.addEventListener("click", transcribeAndParseVoice);
 }
 </script>
 </body>
