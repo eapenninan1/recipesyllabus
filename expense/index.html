@@ -280,6 +280,144 @@ button:disabled{opacity:.45;cursor:not-allowed}
   .input-button{min-height:145px}
   .account-bar{align-items:flex-start}
 }
+
+/* One-line capture bar: receipt on the left, hold-to-record on the right. */
+.input-bar{
+  display:flex;
+  align-items:stretch;
+  gap:16px;
+  margin:26px 0 8px;
+}
+.receipt-action,
+.hold-action{
+  min-height:132px;
+  border:1px solid #d8dfd8;
+  border-radius:22px;
+  background:#edf3ed;
+  display:flex;
+  align-items:center;
+  cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.receipt-action{
+  flex:1 1 auto;
+  padding:22px 28px;
+  gap:22px;
+}
+.hold-action{
+  flex:0 0 36%;
+  min-width:270px;
+  margin-left:auto;
+  justify-content:flex-end;
+  gap:14px;
+  padding:18px 8px 18px 18px;
+  touch-action:none;
+}
+.receipt-action:hover,
+.hold-action:hover{
+  box-shadow:0 7px 18px rgba(30,55,46,.08);
+}
+.receipt-action:active{
+  transform:scale(.995);
+}
+.receipt-action:focus-visible,
+.hold-action:focus-visible{
+  outline:3px solid rgba(76,107,138,.25);
+  outline-offset:2px;
+}
+.action-copy h2,
+.hold-copy h2{
+  margin:0 0 6px;
+}
+.action-copy p,
+.hold-copy p{
+  margin:0;
+}
+.hold-copy{
+  min-width:0;
+}
+.hold-copy p{
+  white-space:nowrap;
+}
+.hold-record-wrap.compact{
+  margin:0;
+  flex:0 0 auto;
+}
+.hold-record-wrap.compact .hold-record{
+  width:86px;
+  height:86px;
+  font-size:31px;
+}
+@media (max-width: 700px){
+  .input-bar{
+    gap:10px;
+    margin-top:18px;
+  }
+  .receipt-action,
+  .hold-action{
+    min-height:96px;
+    border-radius:18px;
+  }
+  .receipt-action{
+    padding:14px 14px;
+    gap:11px;
+  }
+  .receipt-action .input-icon{
+    font-size:28px;
+  }
+  .action-copy h2,
+  .hold-copy h2{
+    font-size:17px;
+  }
+  .action-copy p,
+  .hold-copy p{
+    font-size:11px;
+  }
+  .hold-action{
+    flex:0 0 auto;
+    min-width:0;
+    width:48%;
+    margin-left:auto;
+    justify-content:flex-end;
+    gap:8px;
+    padding:10px 4px 10px 10px;
+  }
+  .hold-record-wrap.compact{
+    margin:0;
+  }
+  .hold-record-wrap.compact .hold-record{
+    width:70px;
+    height:70px;
+    font-size:25px;
+  }
+}
+@media (max-width: 430px){
+  .input-bar{
+    gap:8px;
+  }
+  .receipt-action{
+    padding:11px 10px;
+  }
+  .hold-action{
+    width:50%;
+    margin-left:auto;
+    padding-left:8px;
+  }
+  .action-copy p{
+    display:none;
+  }
+  .hold-copy p{
+    white-space:normal;
+    line-height:1.2;
+    max-width:72px;
+  }
+  .hold-record-wrap.compact .hold-record{
+    width:64px;
+    height:64px;
+    font-size:23px;
+  }
+}
 </style>
 </head>
 <body>
@@ -317,30 +455,28 @@ button:disabled{opacity:.45;cursor:not-allowed}
   </div>
 
   <section class="input-card" id="expenseCard" style="display:none">
-    <div class="input-grid">
-      <label class="input-button" for="receiptInput">
-        <div class="icon">📷</div>
-        <strong>Scan Receipt</strong>
-        <span>Take a photo or choose an image</span>
-      </label>
-
-      <button class="input-button" id="voiceButton" type="button">
-        <div class="icon">🎤</div>
-        <strong>Speak Expense</strong>
-        <span>Describe what you spent</span>
-      </button>
-    </div>
-
-    <input id="receiptInput" type="file" accept="image/*" capture="environment">
-
-    <div class="voice-area" id="voiceArea">
-      <div class="voice-status" id="voiceStatus">Press and hold the microphone while you speak.</div>
-      <div class="hold-record-wrap">
-        <button class="hold-record" id="holdRecordButton" type="button" aria-label="Press and hold to record">
-          🎤
-        </button>
-        <div class="hold-hint">Press and hold → speak → release to send automatically</div>
+    <div class="input-bar">
+      <div class="receipt-action" id="scanCard" role="button" tabindex="0">
+        <div class="input-icon">📷</div>
+        <div class="action-copy">
+          <h2>Scan Receipt</h2>
+          <p>Take a photo or choose an image</p>
+        </div>
+        <input id="receiptInput" type="file" accept="image/*" capture="environment" hidden>
       </div>
+
+      <div class="hold-action" id="voiceButton" role="button" tabindex="0">
+        <div class="hold-copy">
+          <h2>Hold to Record</h2>
+          <p>English · മലയാളം · mixed</p>
+        </div>
+        <div class="hold-record-wrap compact">
+          <button class="hold-record" id="holdRecordButton" type="button"
+                  aria-label="Press and hold to record">🎤</button>
+        </div>
+      </div>
+    </div>
+      
       <div class="auth-message" id="voiceMessage"></div>
     </div>
 
@@ -1351,13 +1487,34 @@ async function transcribeAndParseVoice(audioBlob, mimeType) {
   }
 }
 
-voiceButton.addEventListener("click", () => {
+voiceButton.addEventListener("click", (event) => {
+  if (event.target === holdRecordButton) return;
+
   voiceArea.classList.add("show");
   voiceStatus.textContent =
     "Press and hold the microphone while you speak.";
   setVoiceMessage("");
   holdRecordButton.focus({ preventScroll: true });
 });
+
+scanCard.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    receiptInput.click();
+  }
+});
+
+voiceButton.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    voiceArea.classList.add("show");
+    voiceStatus.textContent =
+      "Press and hold the microphone while you speak.";
+    setVoiceMessage("");
+    holdRecordButton.focus({ preventScroll: true });
+  }
+});
+
 
 if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
   holdRecordButton.disabled = true;
