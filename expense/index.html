@@ -220,6 +220,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <img class="receipt-preview" id="receiptPreview" alt="Receipt preview">
       <div id="receiptUploadArea" style="display:none;margin-top:14px">
         <button class="primary" id="uploadReceiptButton" type="button">Upload Receipt</button>
+        <button class="secondary" id="extractReceiptButton" type="button" style="display:none;margin-left:8px">Test Extraction</button>
         <div class="auth-message" id="receiptUploadMessage"></div>
       </div>
       <div class="result-box" id="voiceResult" style="display:none">
@@ -229,8 +230,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
         </div>
       </div>
       <p class="note" id="receiptNote">
-        Receipt upload is the first storage step. OCR/AI extraction will be added after
-        the image upload and receipt record are working.
+        Receipt upload is working. Next we will test the secure extraction function, then connect the AI/OCR provider.
       </p>
     </div>
   </section>
@@ -342,9 +342,11 @@ const receiptPreview = document.getElementById("receiptPreview");
 const previewTitle = document.getElementById("previewTitle");
 const receiptUploadArea = document.getElementById("receiptUploadArea");
 const uploadReceiptButton = document.getElementById("uploadReceiptButton");
+const extractReceiptButton = document.getElementById("extractReceiptButton");
 const receiptUploadMessage = document.getElementById("receiptUploadMessage");
 
 let selectedReceiptFile = null;
+let currentReceiptId = null;
 
 function setReceiptUploadMessage(message, isError = false) {
   receiptUploadMessage.textContent = message;
@@ -369,6 +371,10 @@ receiptInput.addEventListener("change", () => {
   receiptUploadArea.style.display = "block";
   uploadReceiptButton.disabled = false;
   uploadReceiptButton.textContent = "Upload Receipt";
+  extractReceiptButton.style.display = "none";
+  extractReceiptButton.disabled = false;
+  extractReceiptButton.textContent = "Test Extraction";
+  currentReceiptId = null;
   setReceiptUploadMessage("");
 });
 
@@ -431,12 +437,16 @@ async function uploadReceipt() {
       throw receiptError;
     }
 
+    currentReceiptId = receiptRow.id;
     setReceiptUploadMessage(
       `Uploaded successfully · receipt ${receiptRow.id.substring(0, 8)}…`
     );
     uploadReceiptButton.textContent = "Uploaded";
+    extractReceiptButton.style.display = "inline-block";
+    extractReceiptButton.disabled = false;
+    extractReceiptButton.textContent = "Test Extraction";
     document.getElementById("receiptNote").textContent =
-      "Receipt is safely stored. Next we will add OCR/AI extraction and the review screen.";
+      "Storage and receipt record are working. Click Test Extraction to verify the secure Edge Function before we add AI/OCR.";
   } catch (error) {
     console.error("Receipt upload error:", error);
     setReceiptUploadMessage(
@@ -449,6 +459,45 @@ async function uploadReceipt() {
 }
 
 uploadReceiptButton.addEventListener("click", uploadReceipt);
+
+async function testExtractionFunction() {
+  if (!currentReceiptId) {
+    setReceiptUploadMessage("Upload a receipt first.", true);
+    return;
+  }
+
+  extractReceiptButton.disabled = true;
+  extractReceiptButton.textContent = "Testing…";
+  setReceiptUploadMessage("");
+
+  try {
+    const { data, error } = await supabaseClient.functions.invoke("extract-receipt", {
+      body: { receipt_id: currentReceiptId }
+    });
+
+    if (error) throw error;
+    if (!data?.ok) {
+      throw new Error(data?.error || "Extraction function returned an unexpected response.");
+    }
+
+    setReceiptUploadMessage(
+      `Extraction function connected · image ${(data.receipt?.size_bytes ?? 0).toLocaleString()} bytes retrieved.`
+    );
+    document.getElementById("receiptNote").textContent =
+      "Secure Edge Function test passed. Next we will connect the OCR/AI provider and return structured expense data.";
+    extractReceiptButton.textContent = "Function OK";
+  } catch (error) {
+    console.error("Extraction function error:", error);
+    setReceiptUploadMessage(
+      error.message || "Unable to call the extraction function.",
+      true
+    );
+    extractReceiptButton.disabled = false;
+    extractReceiptButton.textContent = "Try Again";
+  }
+}
+
+extractReceiptButton.addEventListener("click", testExtractionFunction);
 
 const voiceButton = document.getElementById("voiceButton");
 const voiceArea = document.getElementById("voiceArea");
