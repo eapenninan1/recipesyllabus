@@ -145,6 +145,89 @@ button:disabled{opacity:.45;cursor:not-allowed}
   color:var(--muted);
   line-height:1.5;
 }
+
+.review-card{
+  margin-top:18px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px;
+}
+.review-card h3{margin:0 0 14px;font-size:19px}
+.review-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.review-field label{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:5px;
+  font-weight:650;
+}
+.review-field input,
+.review-field select{
+  width:100%;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  color:var(--ink);
+  font:inherit;
+}
+.review-items{
+  margin-top:16px;
+  overflow:auto;
+}
+.review-items table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:680px;
+}
+.review-items th,
+.review-items td{
+  text-align:left;
+  padding:9px 7px;
+  border-bottom:1px solid var(--line);
+  vertical-align:top;
+}
+.review-items th{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+}
+.review-items input,
+.review-items select{
+  width:100%;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+  font:inherit;
+}
+.review-total{
+  display:flex;
+  justify-content:flex-end;
+  gap:18px;
+  margin-top:12px;
+  font-weight:750;
+}
+.review-actions{
+  display:flex;
+  gap:10px;
+  margin-top:16px;
+  flex-wrap:wrap;
+}
+.review-status{
+  margin-top:10px;
+  min-height:20px;
+  font-size:13px;
+  color:var(--muted);
+}
+@media(max-width:520px){
+  .review-grid{grid-template-columns:1fr}
+}
 @media(max-width:520px){
   .app{padding:18px 14px 30px}
   header h1{font-size:27px}
@@ -230,8 +313,62 @@ button:disabled{opacity:.45;cursor:not-allowed}
         </div>
       </div>
       <p class="note" id="receiptNote">
-        Receipt upload is working. Next we will test the secure extraction function, then connect the AI/OCR provider.
+        Receipt upload is working. Run extraction to generate structured expense data for review.
       </p>
+
+      <section class="review-card" id="reviewCard" style="display:none">
+        <h3>Review extracted expense</h3>
+
+        <div class="review-grid">
+          <div class="review-field">
+            <label for="reviewMerchant">Merchant</label>
+            <input id="reviewMerchant" type="text">
+          </div>
+          <div class="review-field">
+            <label for="reviewDate">Date</label>
+            <input id="reviewDate" type="date">
+          </div>
+          <div class="review-field">
+            <label for="reviewTotal">Total</label>
+            <input id="reviewTotal" type="number" step="0.01" min="0">
+          </div>
+          <div class="review-field">
+            <label for="reviewCurrency">Currency</label>
+            <input id="reviewCurrency" type="text" maxlength="3">
+          </div>
+          <div class="review-field">
+            <label for="reviewPayment">Payment method</label>
+            <input id="reviewPayment" type="text">
+          </div>
+        </div>
+
+        <div class="review-items">
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Unit</th>
+                <th>Amount</th>
+                <th>Category</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody id="reviewItemsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="review-total">
+          <span>Items total</span>
+          <span id="reviewItemsTotal">0.00</span>
+        </div>
+
+        <div class="review-actions">
+          <button class="primary" id="confirmExpenseButton" type="button">Confirm & Save</button>
+          <button class="secondary" id="hideReviewButton" type="button">Hide Review</button>
+        </div>
+        <div class="review-status" id="reviewStatus"></div>
+      </section>
     </div>
   </section>
 </main>
@@ -460,6 +597,167 @@ async function uploadReceipt() {
 
 uploadReceiptButton.addEventListener("click", uploadReceipt);
 
+
+const reviewCard = document.getElementById("reviewCard");
+const reviewMerchant = document.getElementById("reviewMerchant");
+const reviewDate = document.getElementById("reviewDate");
+const reviewTotal = document.getElementById("reviewTotal");
+const reviewCurrency = document.getElementById("reviewCurrency");
+const reviewPayment = document.getElementById("reviewPayment");
+const reviewItemsBody = document.getElementById("reviewItemsBody");
+const reviewItemsTotal = document.getElementById("reviewItemsTotal");
+const reviewStatus = document.getElementById("reviewStatus");
+const confirmExpenseButton = document.getElementById("confirmExpenseButton");
+const hideReviewButton = document.getElementById("hideReviewButton");
+
+let currentExtraction = null;
+
+function setReviewStatus(message, isError=false){
+  reviewStatus.textContent = message;
+  reviewStatus.style.color = isError ? "#a33a2b" : "#245b3d";
+}
+
+function renderReview(extraction){
+  currentExtraction = extraction || {};
+  reviewMerchant.value = extraction?.merchant_name ?? "";
+  reviewDate.value = extraction?.expense_date ?? "";
+  reviewTotal.value = extraction?.total_amount ?? "";
+  reviewCurrency.value = extraction?.currency_code ?? "";
+  reviewPayment.value = extraction?.payment_method ?? "";
+  reviewItemsBody.innerHTML = "";
+
+  const items = Array.isArray(extraction?.items) ? extraction.items : [];
+
+  items.forEach((item, index) => {
+    const tr = document.createElement("tr");
+
+    const description = document.createElement("input");
+    description.type = "text";
+    description.value = item?.description ?? "";
+
+    const quantity = document.createElement("input");
+    quantity.type = "number";
+    quantity.step = "0.01";
+    quantity.min = "0";
+    quantity.value = item?.quantity ?? "";
+
+    const unit = document.createElement("input");
+    unit.type = "text";
+    unit.value = item?.unit ?? "";
+
+    const amount = document.createElement("input");
+    amount.type = "number";
+    amount.step = "0.01";
+    amount.min = "0";
+    amount.value = item?.amount ?? "";
+
+    const category = document.createElement("input");
+    category.type = "text";
+    category.value = item?.category ?? "";
+
+    const confidence = document.createElement("input");
+    confidence.type = "number";
+    confidence.step = "0.01";
+    confidence.min = "0";
+    confidence.max = "1";
+    confidence.value = item?.confidence ?? "";
+
+    [description, quantity, unit, amount, category, confidence].forEach((el) => {
+      el.dataset.index = index;
+    });
+
+    function td(el){
+      const cell = document.createElement("td");
+      cell.appendChild(el);
+      return cell;
+    }
+
+    tr.appendChild(td(description));
+    tr.appendChild(td(quantity));
+    tr.appendChild(td(unit));
+    tr.appendChild(td(amount));
+    tr.appendChild(td(category));
+    tr.appendChild(td(confidence));
+    reviewItemsBody.appendChild(tr);
+  });
+
+  const updateTotal = () => {
+    let total = 0;
+    reviewItemsBody.querySelectorAll("tr").forEach((row) => {
+      const amountInput = row.children[3].querySelector("input");
+      const value = Number(amountInput?.value);
+      if (Number.isFinite(value)) total += value;
+    });
+    reviewItemsTotal.textContent = total.toFixed(2);
+  };
+
+  reviewItemsBody.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("input", updateTotal);
+  });
+
+  updateTotal();
+  reviewCard.style.display = items.length || extraction ? "block" : "none";
+  setReviewStatus(
+    `AI confidence: ${Number(extraction?.overall_confidence ?? 0).toFixed(2)}. Check the fields before saving.`
+  );
+}
+
+function collectReviewData(){
+  const items = Array.from(reviewItemsBody.querySelectorAll("tr")).map((row) => {
+    const value = (column) => row.children[column]?.querySelector("input")?.value ?? "";
+    return {
+      description: value(0).trim(),
+      quantity: value(1) === "" ? null : Number(value(1)),
+      unit: value(2).trim() || null,
+      amount: Number(value(3)),
+      category: value(4).trim() || null,
+      confidence: value(5) === "" ? null : Number(value(5))
+    };
+  });
+
+  return {
+    merchant_name: reviewMerchant.value.trim() || null,
+    expense_date: reviewDate.value || null,
+    total_amount: reviewTotal.value === "" ? null : Number(reviewTotal.value),
+    currency_code: reviewCurrency.value.trim().toUpperCase() || null,
+    payment_method: reviewPayment.value.trim() || null,
+    items,
+    overall_confidence: Number(currentExtraction?.overall_confidence ?? 0),
+    notes: String(currentExtraction?.notes ?? "")
+  };
+}
+
+hideReviewButton.addEventListener("click", () => {
+  reviewCard.style.display = "none";
+});
+
+confirmExpenseButton.addEventListener("click", () => {
+  const reviewData = collectReviewData();
+
+  if (!reviewData.merchant_name) {
+    setReviewStatus("Please enter the merchant name.", true);
+    return;
+  }
+
+  if (!reviewData.expense_date) {
+    setReviewStatus("Please enter the expense date.", true);
+    return;
+  }
+
+  if (!Number.isFinite(reviewData.total_amount) || reviewData.total_amount < 0) {
+    setReviewStatus("Please enter a valid total amount.", true);
+    return;
+  }
+
+  if (!reviewData.items.length) {
+    setReviewStatus("No line items were extracted.", true);
+    return;
+  }
+
+  // Saving to expenses/expense_items will be wired in the next step.
+  setReviewStatus("Review data is ready. Database save will be connected next.");
+});
+
 async function testExtractionFunction() {
   if (!currentReceiptId) {
     setReceiptUploadMessage("Upload a receipt first.", true);
@@ -467,7 +765,7 @@ async function testExtractionFunction() {
   }
 
   extractReceiptButton.disabled = true;
-  extractReceiptButton.textContent = "Testing…";
+  extractReceiptButton.textContent = "Extracting…";
   setReceiptUploadMessage("");
 
   try {
@@ -476,20 +774,33 @@ async function testExtractionFunction() {
     });
 
     if (error) throw error;
+
     if (!data?.ok) {
       throw new Error(data?.error || "Extraction function returned an unexpected response.");
     }
 
+    if (!data?.extraction) {
+      throw new Error("Extraction function returned no structured extraction data.");
+    }
+
+    renderReview(data.extraction);
+
     setReceiptUploadMessage(
-      `Extraction function connected · image ${(data.receipt?.size_bytes ?? 0).toLocaleString()} bytes retrieved.`
+      "AI extraction completed successfully. Review the extracted fields below."
     );
+
     document.getElementById("receiptNote").textContent =
-      "Secure Edge Function test passed. Next we will connect the OCR/AI provider and return structured expense data.";
-    extractReceiptButton.textContent = "Function OK";
+      data.extraction?.notes ||
+      "Review the extracted expense details. Nothing is saved to the expenses table until you confirm.";
+
+    extractReceiptButton.textContent = "Extracted";
+    extractReceiptButton.disabled = false;
+    reviewCard.scrollIntoView({ behavior: "smooth", block: "start" });
+
   } catch (error) {
     console.error("Extraction function error:", error);
     setReceiptUploadMessage(
-      error.message || "Unable to call the extraction function.",
+      error.message || "Unable to extract the receipt.",
       true
     );
     extractReceiptButton.disabled = false;
