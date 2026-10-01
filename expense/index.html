@@ -33,6 +33,25 @@ header{
 }
 header h1{margin:0;font-size:30px;letter-spacing:-.5px}
 header p{margin:7px 0 0;color:var(--muted)}
+.auth-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:22px;
+  box-shadow:0 10px 30px rgba(23,59,50,.06);
+  margin-bottom:18px;
+}
+.auth-card h2{margin:0 0 6px;font-size:20px}
+.auth-card p{margin:0 0 16px;color:var(--muted);font-size:14px}
+.auth-field{margin-top:12px}
+.auth-field label{display:block;font-size:13px;font-weight:650;margin-bottom:6px;color:var(--ink)}
+.auth-field input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit;outline:none}
+.auth-field input:focus{border-color:#b9c6bc;box-shadow:0 0 0 3px rgba(216,155,61,.12)}
+.auth-actions{display:flex;align-items:center;gap:10px;margin-top:16px}
+.auth-message{margin-top:12px;min-height:20px;font-size:13px;color:var(--muted)}
+.account-bar{display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:11px 14px;background:var(--soft);border:1px solid var(--line);border-radius:14px;font-size:13px}
+.account-bar.show{display:flex}
+.account-email{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .input-card{
   background:var(--card);
   border:1px solid var(--line);
@@ -129,9 +148,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:520px){
   .app{padding:18px 14px 30px}
   header h1{font-size:27px}
+  .auth-card{padding:16px}
   .input-card{padding:14px}
   .input-grid{grid-template-columns:1fr;gap:12px}
   .input-button{min-height:145px}
+  .account-bar{align-items:flex-start}
 }
 </style>
 </head>
@@ -147,7 +168,29 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </div>
   </header>
 
-  <section class="input-card">
+  <section class="auth-card" id="authCard">
+    <h2>Sign in</h2>
+    <p>Use your Expense account to continue.</p>
+    <div class="auth-field">
+      <label for="emailInput">Email</label>
+      <input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com">
+    </div>
+    <div class="auth-field">
+      <label for="passwordInput">Password</label>
+      <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password">
+    </div>
+    <div class="auth-actions">
+      <button class="primary" id="signInButton" type="button">Sign In</button>
+    </div>
+    <div class="auth-message" id="authMessage"></div>
+  </section>
+
+  <div class="account-bar" id="accountBar">
+    <span class="account-email" id="accountEmail"></span>
+    <button class="secondary" id="signOutButton" type="button">Sign Out</button>
+  </div>
+
+  <section class="input-card" id="expenseCard" style="display:none">
     <div class="input-grid">
       <label class="input-button" for="receiptInput">
         <div class="icon">📷</div>
@@ -202,27 +245,93 @@ const supabaseClient = window.supabase.createClient(
 
 const supabaseStatus = document.getElementById("supabaseStatus");
 
-async function checkSupabaseConnection() {
+const authCard = document.getElementById("authCard");
+const expenseCard = document.getElementById("expenseCard");
+const accountBar = document.getElementById("accountBar");
+const accountEmail = document.getElementById("accountEmail");
+const emailInput = document.getElementById("emailInput");
+const passwordInput = document.getElementById("passwordInput");
+const signInButton = document.getElementById("signInButton");
+const signOutButton = document.getElementById("signOutButton");
+const authMessage = document.getElementById("authMessage");
+
+function setSignedInUI(user) {
+  const signedIn = !!user;
+  authCard.style.display = signedIn ? "none" : "block";
+  expenseCard.style.display = signedIn ? "block" : "none";
+  accountBar.classList.toggle("show", signedIn);
+  accountEmail.textContent = signedIn ? user.email : "";
+  supabaseStatus.textContent = signedIn
+    ? "Supabase connected · signed in"
+    : "Supabase connected · not signed in";
+  supabaseStatus.style.color = signedIn ? "#245b3d" : "#6d7772";
+}
+
+async function initialiseAuth() {
   try {
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-
+    const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
-
-    if (session?.user?.email) {
-      supabaseStatus.textContent = "Supabase connected · signed in";
-      supabaseStatus.style.color = "#245b3d";
-    } else {
-      supabaseStatus.textContent = "Supabase connected · not signed in";
-      supabaseStatus.style.color = "#6d7772";
-    }
+    setSignedInUI(data.session?.user || null);
   } catch (error) {
-    console.error("Supabase connection error:", error);
+    console.error("Supabase auth error:", error);
     supabaseStatus.textContent = "Supabase connection failed";
     supabaseStatus.style.color = "#a33a2b";
   }
 }
 
-checkSupabaseConnection();
+supabaseClient.auth.onAuthStateChange((_event, session) => {
+  setSignedInUI(session?.user || null);
+});
+
+signInButton.addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  authMessage.textContent = "";
+
+  if (!email || !password) {
+    authMessage.textContent = "Enter your email and password.";
+    return;
+  }
+
+  signInButton.disabled = true;
+  signInButton.textContent = "Signing in…";
+
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+    if (error) throw error;
+    passwordInput.value = "";
+    authMessage.textContent = "";
+  } catch (error) {
+    console.error("Sign-in error:", error);
+    authMessage.textContent = error.message || "Unable to sign in.";
+  } finally {
+    signInButton.disabled = false;
+    signInButton.textContent = "Sign In";
+  }
+});
+
+signOutButton.addEventListener("click", async () => {
+  signOutButton.disabled = true;
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) throw error;
+  } catch (error) {
+    console.error("Sign-out error:", error);
+    alert(error.message || "Unable to sign out.");
+  } finally {
+    signOutButton.disabled = false;
+  }
+});
+
+passwordInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") signInButton.click();
+});
+
+initialiseAuth();
 
 const receiptInput = document.getElementById("receiptInput");
 const preview = document.getElementById("preview");
