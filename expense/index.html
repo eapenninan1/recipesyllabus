@@ -731,8 +731,13 @@ hideReviewButton.addEventListener("click", () => {
   reviewCard.style.display = "none";
 });
 
-confirmExpenseButton.addEventListener("click", () => {
+confirmExpenseButton.addEventListener("click", async () => {
   const reviewData = collectReviewData();
+
+  if (!currentReceiptId) {
+    setReviewStatus("No receipt is selected. Please upload and extract a receipt first.", true);
+    return;
+  }
 
   if (!reviewData.merchant_name) {
     setReviewStatus("Please enter the merchant name.", true);
@@ -749,13 +754,70 @@ confirmExpenseButton.addEventListener("click", () => {
     return;
   }
 
+  if (!reviewData.currency_code || reviewData.currency_code.length !== 3) {
+    setReviewStatus("Please enter a 3-letter currency code, such as GBP.", true);
+    return;
+  }
+
   if (!reviewData.items.length) {
     setReviewStatus("No line items were extracted.", true);
     return;
   }
 
-  // Saving to expenses/expense_items will be wired in the next step.
-  setReviewStatus("Review data is ready. Database save will be connected next.");
+  for (const [index, item] of reviewData.items.entries()) {
+    if (!item.description) {
+      setReviewStatus(`Please enter a description for item ${index + 1}.`, true);
+      return;
+    }
+    if (!Number.isFinite(item.amount) || item.amount < 0) {
+      setReviewStatus(`Please enter a valid amount for item ${index + 1}.`, true);
+      return;
+    }
+    if (item.quantity !== null && (!Number.isFinite(item.quantity) || item.quantity < 0)) {
+      setReviewStatus(`Please enter a valid quantity for item ${index + 1}.`, true);
+      return;
+    }
+    if (item.confidence !== null && (!Number.isFinite(item.confidence) || item.confidence < 0 || item.confidence > 1)) {
+      setReviewStatus(`Confidence for item ${index + 1} must be between 0 and 1.`, true);
+      return;
+    }
+  }
+
+  confirmExpenseButton.disabled = true;
+  confirmExpenseButton.textContent = "Saving…";
+  setReviewStatus("Saving expense…");
+
+  try {
+    const { data, error } = await supabaseClient.rpc("save_confirmed_expense", {
+      p_receipt_id: currentReceiptId,
+      p_merchant_name: reviewData.merchant_name,
+      p_expense_date: reviewData.expense_date,
+      p_expense_time: null,
+      p_total_amount: reviewData.total_amount,
+      p_currency_code: reviewData.currency_code,
+      p_payment_method: reviewData.payment_method,
+      p_notes: reviewData.notes,
+      p_items: reviewData.items
+    });
+
+    if (error) throw error;
+
+    setReviewStatus(`Expense saved successfully. ID: ${String(data).substring(0, 8)}…`);
+    confirmExpenseButton.textContent = "Saved";
+    confirmExpenseButton.disabled = true;
+    extractReceiptButton.disabled = true;
+    uploadReceiptButton.disabled = true;
+    document.getElementById("receiptNote").textContent =
+      "This receipt has been saved as a confirmed expense.";
+  } catch (error) {
+    console.error("Expense save error:", error);
+    setReviewStatus(
+      error.message || "Unable to save the expense.",
+      true
+    );
+    confirmExpenseButton.disabled = false;
+    confirmExpenseButton.textContent = "Confirm & Save";
+  }
 });
 
 async function testExtractionFunction() {
