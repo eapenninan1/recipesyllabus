@@ -295,7 +295,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <div class="voice-actions">
         <button class="primary" id="startVoice" type="button">Start</button>
         <button class="secondary" id="stopVoice" type="button" disabled>Stop</button>
+        <button class="secondary" id="parseVoiceButton" type="button" disabled>Parse Expense</button>
       </div>
+      <div class="auth-message" id="voiceMessage"></div>
     </div>
 
     <div class="preview" id="preview">
@@ -303,7 +305,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <img class="receipt-preview" id="receiptPreview" alt="Receipt preview">
       <div id="receiptUploadArea" style="display:none;margin-top:14px">
         <button class="primary" id="uploadReceiptButton" type="button">Upload Receipt</button>
-        <button class="secondary" id="extractReceiptButton" type="button" style="display:none;margin-left:8px">Test Extraction</button>
+        <button class="secondary" id="extractReceiptButton" type="button" style="display:none;margin-left:8px">Extract Receipt</button>
         <div class="auth-message" id="receiptUploadMessage"></div>
       </div>
       <div class="result-box" id="voiceResult" style="display:none">
@@ -484,6 +486,8 @@ const receiptUploadMessage = document.getElementById("receiptUploadMessage");
 
 let selectedReceiptFile = null;
 let currentReceiptId = null;
+let currentInputMethod = null;
+let currentVoiceText = "";
 
 function setReceiptUploadMessage(message, isError = false) {
   receiptUploadMessage.textContent = message;
@@ -512,6 +516,8 @@ receiptInput.addEventListener("change", () => {
   extractReceiptButton.disabled = false;
   extractReceiptButton.textContent = "Test Extraction";
   currentReceiptId = null;
+  currentInputMethod = "receipt";
+  currentVoiceText = "";
   setReceiptUploadMessage("");
 });
 
@@ -734,8 +740,13 @@ hideReviewButton.addEventListener("click", () => {
 confirmExpenseButton.addEventListener("click", async () => {
   const reviewData = collectReviewData();
 
-  if (!currentReceiptId) {
+  if (currentInputMethod === "receipt" && !currentReceiptId) {
     setReviewStatus("No receipt is selected. Please upload and extract a receipt first.", true);
+    return;
+  }
+
+  if (currentInputMethod === "voice" && !currentVoiceText) {
+    setReviewStatus("No spoken expense is available. Please record it first.", true);
     return;
   }
 
@@ -788,39 +799,54 @@ confirmExpenseButton.addEventListener("click", async () => {
   setReviewStatus("Saving expense…");
 
   try {
-    const { data, error } = await supabaseClient.rpc("save_confirmed_expense", {
-      p_receipt_id: currentReceiptId,
-      p_merchant_name: reviewData.merchant_name,
-      p_expense_date: reviewData.expense_date,
-      p_expense_time: null,
-      p_total_amount: reviewData.total_amount,
-      p_currency_code: reviewData.currency_code,
-      p_payment_method: reviewData.payment_method,
-      p_notes: reviewData.notes,
-      p_items: reviewData.items
-    });
+    let data, error;
+
+    if (currentInputMethod === "voice") {
+      ({ data, error } = await supabaseClient.rpc("save_voice_expense", {
+        p_merchant_name: reviewData.merchant_name,
+        p_expense_date: reviewData.expense_date,
+        p_expense_time: currentExtraction?.expense_time || null,
+        p_total_amount: reviewData.total_amount,
+        p_currency_code: reviewData.currency_code,
+        p_payment_method: reviewData.payment_method,
+        p_notes: reviewData.notes,
+        p_items: reviewData.items
+      }));
+    } else {
+      ({ data, error } = await supabaseClient.rpc("save_confirmed_expense", {
+        p_receipt_id: currentReceiptId,
+        p_merchant_name: reviewData.merchant_name,
+        p_expense_date: reviewData.expense_date,
+        p_expense_time: null,
+        p_total_amount: reviewData.total_amount,
+        p_currency_code: reviewData.currency_code,
+        p_payment_method: reviewData.payment_method,
+        p_notes: reviewData.notes,
+        p_items: reviewData.items
+      }));
+    }
 
     if (error) throw error;
 
     setReviewStatus(`Expense saved successfully. ID: ${String(data).substring(0, 8)}…`);
     confirmExpenseButton.textContent = "Saved";
     confirmExpenseButton.disabled = true;
-    extractReceiptButton.disabled = true;
-    uploadReceiptButton.disabled = true;
+    if (extractReceiptButton) extractReceiptButton.disabled = true;
+    if (uploadReceiptButton) uploadReceiptButton.disabled = true;
     document.getElementById("receiptNote").textContent =
-      "This receipt has been saved as a confirmed expense.";
+      currentInputMethod === "voice"
+        ? "This spoken expense has been saved as a confirmed expense."
+        : "This receipt has been saved as a confirmed expense.";
   } catch (error) {
     console.error("Expense save error:", error);
-    setReviewStatus(
-      error.message || "Unable to save the expense.",
-      true
-    );
+    setReviewStatus(error.message || "Unable to save the expense.", true);
     confirmExpenseButton.disabled = false;
     confirmExpenseButton.textContent = "Confirm & Save";
   }
 });
 
 async function testExtractionFunction() {
+  currentInputMethod = "receipt";
   if (!currentReceiptId) {
     setReceiptUploadMessage("Upload a receipt first.", true);
     return;
@@ -877,15 +903,91 @@ const voiceArea = document.getElementById("voiceArea");
 const voiceStatus = document.getElementById("voiceStatus");
 const startVoice = document.getElementById("startVoice");
 const stopVoice = document.getElementById("stopVoice");
+const parseVoiceButton = document.getElementById("parseVoiceButton");
+const voiceMessage = document.getElementById("voiceMessage");
 const voiceResult = document.getElementById("voiceResult");
 const spokenText = document.getElementById("spokenText");
 
 let recognition = null;
+let finalVoiceTranscript = "";
+
+function setVoiceMessage(message, isError = false) {
+  voiceMessage.textContent = message;
+  voiceMessage.style.color = isError ? "#a33a2b" : "#245b3d";
+}
+
+function getLocalDateString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function getLocalTimeString() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+}
+
+async function parseVoiceExpense() {
+  const text = finalVoiceTranscript.trim();
+
+  if (!text) {
+    setVoiceMessage("No spoken expense was captured.", true);
+    return;
+  }
+
+  parseVoiceButton.disabled = true;
+  parseVoiceButton.textContent = "Parsing…";
+  setVoiceMessage("Sending your spoken expense to the AI parser…");
+
+  try {
+    const { data, error } = await supabaseClient.functions.invoke(
+      "parse-voice-expense",
+      {
+        body: {
+          spoken_text: text,
+          local_date: getLocalDateString(),
+          local_time: getLocalTimeString()
+        }
+      }
+    );
+
+    if (error) throw error;
+    if (!data?.ok) {
+      throw new Error(data?.error || `Voice parser failed at ${data?.stage || "unknown stage"}.`);
+    }
+    if (!data?.extraction) {
+      throw new Error("Voice parser returned no structured extraction.");
+    }
+
+    currentInputMethod = "voice";
+    currentReceiptId = null;
+    renderReview(data.extraction);
+
+    spokenText.textContent = text;
+    voiceResult.style.display = "block";
+    previewTitle.textContent = "Voice expense";
+    receiptPreview.style.display = "none";
+    preview.classList.add("show");
+
+    setVoiceMessage("Voice parsed successfully. Review the details below before saving.");
+    document.getElementById("receiptNote").textContent =
+      data.extraction?.notes ||
+      "Review the extracted expense details. Nothing is saved until you confirm.";
+
+    reviewCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    console.error("Voice parser error:", error);
+    setVoiceMessage(error.message || "Unable to parse the spoken expense.", true);
+  } finally {
+    parseVoiceButton.disabled = !finalVoiceTranscript.trim();
+    parseVoiceButton.textContent = "Parse Expense";
+  }
+}
 
 voiceButton.addEventListener("click", () => {
   voiceArea.classList.toggle("show");
   if (voiceArea.classList.contains("show")) {
     voiceStatus.textContent = "Tap Start and speak naturally.";
+    setVoiceMessage("");
   }
 });
 
@@ -894,6 +996,8 @@ const SpeechRecognition =
 
 if (!SpeechRecognition) {
   startVoice.disabled = true;
+  stopVoice.disabled = true;
+  parseVoiceButton.disabled = true;
   voiceStatus.textContent =
     "Voice input is not supported by this browser. Try Chrome or Edge.";
 } else {
@@ -903,35 +1007,76 @@ if (!SpeechRecognition) {
   recognition.continuous = false;
 
   recognition.onstart = () => {
+    currentInputMethod = "voice";
+    currentVoiceText = "";
+    finalVoiceTranscript = "";
     startVoice.disabled = true;
     stopVoice.disabled = false;
+    parseVoiceButton.disabled = true;
+    setVoiceMessage("");
     voiceStatus.textContent = "Listening… speak your expense.";
   };
 
   recognition.onresult = (event) => {
-    let text = "";
+    let finalText = "";
+    let interimText = "";
+
     for (let i = event.resultIndex; i < event.results.length; i++) {
-      text += event.results[i][0].transcript;
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalText += transcript;
+      } else {
+        interimText += transcript;
+      }
     }
-    voiceStatus.textContent = text;
-    spokenText.textContent = text;
+
+    if (finalText) {
+      finalVoiceTranscript += finalText;
+    }
+
+    currentVoiceText = (finalVoiceTranscript + interimText).trim();
+    voiceStatus.textContent = currentVoiceText || "Listening…";
+    spokenText.textContent = currentVoiceText;
     voiceResult.style.display = "block";
-    previewTitle.textContent = "Voice submission";
+    previewTitle.textContent = "Voice expense";
     receiptPreview.style.display = "none";
     preview.classList.add("show");
+    parseVoiceButton.disabled = !finalVoiceTranscript.trim();
   };
 
   recognition.onerror = (event) => {
     voiceStatus.textContent = "Voice input error: " + event.error;
+    setVoiceMessage(`Voice input error: ${event.error}.`, true);
+    startVoice.disabled = false;
+    stopVoice.disabled = true;
   };
 
   recognition.onend = () => {
     startVoice.disabled = false;
     stopVoice.disabled = true;
+    parseVoiceButton.disabled = !finalVoiceTranscript.trim();
+
+    if (finalVoiceTranscript.trim()) {
+      currentVoiceText = finalVoiceTranscript.trim();
+      voiceStatus.textContent = currentVoiceText;
+      setVoiceMessage("Recording finished. Click Parse Expense.");
+    } else if (currentVoiceText.trim()) {
+      finalVoiceTranscript = currentVoiceText.trim();
+      parseVoiceButton.disabled = false;
+      setVoiceMessage("Recording finished. Click Parse Expense.");
+    }
   };
 
-  startVoice.addEventListener("click", () => recognition.start());
+  startVoice.addEventListener("click", () => {
+    try {
+      recognition.start();
+    } catch (error) {
+      setVoiceMessage(error.message || "Unable to start voice input.", true);
+    }
+  });
+
   stopVoice.addEventListener("click", () => recognition.stop());
+  parseVoiceButton.addEventListener("click", parseVoiceExpense);
 }
 </script>
 </body>
