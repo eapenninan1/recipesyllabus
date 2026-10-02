@@ -444,7 +444,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       </div>
 
       <button class="hold-record" id="voiceButton" type="button"
-              aria-label="Press and hold to record in English or Malayalam">🎤</button>
+              aria-label="Press and hold to record a voice expense in English or Malayalam">🎤</button>
     </div>
       
     <div id="saveSuccessMessage" class="auth-message" style="display:none; margin:18px 0 0; padding:14px 16px; border-radius:14px; background:#edf6ef; border:1px solid #d6e6d9; color:#245b3d; font-size:14px; font-weight:600;">
@@ -453,7 +453,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
     <div class="voice-area" id="voiceArea">
       <div class="voice-status" id="voiceStatus">
-        Press and hold the microphone while you speak.
+        Press and hold the microphone to record your voice expense. Release to upload automatically.
       </div>
       <div class="auth-message" id="voiceMessage"></div>
     </div>
@@ -1245,13 +1245,13 @@ async function startRecording() {
     recordingStartedAt = Date.now();
 
     holdRecordButton.classList.add("recording");
-    holdRecordButton.textContent = "⏺";
-    holdRecordButton.setAttribute("aria-label", "Release to send recording");
+    holdRecordButton.innerHTML = '<span class="recording-indicator" aria-hidden="true"></span>';
+    holdRecordButton.setAttribute("aria-label", "Release to upload the voice recording");
 
     voiceResult.style.display = "none";
     voiceStatus.textContent =
       "Recording… speak in English, മലയാളം, or mix both.";
-    setVoiceMessage("Keep holding… release your finger to send automatically.");
+    setVoiceMessage("Keep pressing and holding… release to upload automatically.");
 
     clearInterval(recordingTimer);
     recordingTimer = setInterval(updateRecordingTimer, 250);
@@ -1281,7 +1281,7 @@ function stopRecordingAndSend() {
   recordingTimer = null;
 
   holdRecordButton.classList.remove("recording");
-  holdRecordButton.textContent = "🎤";
+  holdRecordButton.innerHTML = "🎤";
   holdRecordButton.disabled = true;
   holdRecordButton.setAttribute("aria-label", "Processing recording");
 
@@ -1496,10 +1496,10 @@ async function transcribeAndParseVoice(audioBlob, mimeType) {
     isProcessingVoice = false;
     holdRecordButton.disabled = false;
     holdRecordButton.classList.remove("recording");
-    holdRecordButton.textContent = "🎤";
+    holdRecordButton.innerHTML = "🎤";
     holdRecordButton.setAttribute(
       "aria-label",
-      "Press and hold to record"
+      "Press and hold to record a voice expense"
     );
   }
 }
