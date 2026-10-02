@@ -521,7 +521,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
         <div class="review-actions">
           <button class="primary" id="confirmExpenseButton" type="button">Confirm & Save</button>
-          <button class="secondary" id="hideReviewButton" type="button">Hide Review</button>
+
         </div>
         <div class="review-status" id="reviewStatus"></div>
       </section>
@@ -805,7 +805,6 @@ const reviewItemsBody = document.getElementById("reviewItemsBody");
 const reviewItemsTotal = document.getElementById("reviewItemsTotal");
 const reviewStatus = document.getElementById("reviewStatus");
 const confirmExpenseButton = document.getElementById("confirmExpenseButton");
-const hideReviewButton = document.getElementById("hideReviewButton");
 
 let currentExtraction = null;
 
@@ -924,10 +923,6 @@ function collectReviewData(){
   };
 }
 
-hideReviewButton.addEventListener("click", () => {
-  reviewCard.style.display = "none";
-});
-
 confirmExpenseButton.addEventListener("click", async () => {
   const reviewData = collectReviewData();
 
@@ -1024,10 +1019,15 @@ confirmExpenseButton.addEventListener("click", async () => {
     confirmExpenseButton.disabled = true;
     if (extractReceiptButton) extractReceiptButton.style.display = "none";
     if (uploadReceiptButton) uploadReceiptButton.disabled = true;
+
     document.getElementById("receiptNote").textContent =
       currentInputMethod === "voice"
         ? "This spoken expense has been saved as a confirmed expense."
         : "This receipt has been saved as a confirmed expense.";
+
+    // The review form is only needed until confirmation. Hide it
+    // automatically after a successful save.
+    reviewCard.style.display = "none";
   } catch (error) {
     console.error("Expense save error:", error);
     setReviewStatus(error.message || "Unable to save the expense.", true);
