@@ -434,7 +434,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
   <section class="input-card" id="expenseCard" style="display:none">
     <div class="input-bar">
-      <div class="receipt-action" id="scanCard" role="button" tabindex="0" aria-label="Scan Receipt">
+      <div class="receipt-action" id="scanCard" role="button" tabindex="0" aria-label="Take a receipt photo">
         <div class="input-icon">📷</div>
         <div class="action-copy">
           <h2>Scan Receipt</h2>
@@ -462,8 +462,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <h2 id="previewTitle">Submitted receipt</h2>
       <img class="receipt-preview" id="receiptPreview" alt="Receipt preview">
       <div id="receiptUploadArea" style="display:none;margin-top:14px">
-        <button class="primary" id="uploadReceiptButton" type="button">Scan</button>
-        <button class="secondary" id="extractReceiptButton" type="button" style="display:none">Extract Receipt</button>
         <div class="auth-message" id="receiptUploadMessage"></div>
       </div>
       <div class="result-box" id="voiceResult" style="display:none">
@@ -473,7 +471,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
         </div>
       </div>
       <p class="note" id="receiptNote">
-        Select a receipt, tap Scan, and the receipt will be uploaded and analyzed automatically. Nothing is saved as an expense until you confirm.
+        Take a photo or choose a receipt image. It will be uploaded and analyzed automatically. Nothing is saved as an expense until you confirm.
       </p>
 
       <section class="review-card" id="reviewCard" style="display:none">
@@ -638,8 +636,6 @@ const preview = document.getElementById("preview");
 const receiptPreview = document.getElementById("receiptPreview");
 const previewTitle = document.getElementById("previewTitle");
 const receiptUploadArea = document.getElementById("receiptUploadArea");
-const uploadReceiptButton = document.getElementById("uploadReceiptButton");
-const extractReceiptButton = document.getElementById("extractReceiptButton");
 const receiptUploadMessage = document.getElementById("receiptUploadMessage");
 const scanCard = document.getElementById("scanCard");
 const saveSuccessMessage = document.getElementById("saveSuccessMessage");
@@ -654,7 +650,7 @@ function setReceiptUploadMessage(message, isError = false) {
   receiptUploadMessage.style.color = isError ? "#a33a2b" : "#245b3d";
 }
 
-receiptInput.addEventListener("change", () => {
+receiptInput.addEventListener("change", async () => {
   const file = receiptInput.files?.[0];
   if (!file) return;
 
@@ -672,15 +668,13 @@ receiptInput.addEventListener("change", () => {
   previewTitle.textContent = "Receipt captured";
   preview.classList.add("show");
   receiptUploadArea.style.display = "block";
-  uploadReceiptButton.disabled = false;
-  uploadReceiptButton.textContent = "Scan";
-  extractReceiptButton.style.display = "none";
-  extractReceiptButton.disabled = false;
-  extractReceiptButton.textContent = "Extract Receipt";
   currentReceiptId = null;
   currentInputMethod = "receipt";
   currentVoiceText = "";
-  setReceiptUploadMessage("");
+  setReceiptUploadMessage("Uploading receipt…");
+
+  // Taking/selecting the picture starts the receipt workflow automatically.
+  await uploadReceipt();
 });
 
 function getSafeExtension(file) {
@@ -696,9 +690,7 @@ async function uploadReceipt() {
     return;
   }
 
-  uploadReceiptButton.disabled = true;
-  uploadReceiptButton.textContent = "Scanning…";
-  setReceiptUploadMessage("Uploading receipt…");
+
 
   try {
     const { data: { session }, error: sessionError } =
@@ -746,7 +738,6 @@ async function uploadReceipt() {
     currentInputMethod = "receipt";
 
     setReceiptUploadMessage("Receipt uploaded. Reading the receipt…");
-    uploadReceiptButton.textContent = "Scanning…";
 
     // Automatically upload + extract. There is no separate extraction step.
     const { data, error } = await supabaseClient.functions.invoke(
@@ -772,9 +763,6 @@ async function uploadReceipt() {
     currentExtraction = data.extraction;
     renderReview(data.extraction);
 
-    uploadReceiptButton.textContent = "Scanned";
-    uploadReceiptButton.disabled = true;
-    extractReceiptButton.style.display = "none";
 
     setReceiptUploadMessage(
       "Receipt scanned successfully. Review the extracted fields below."
@@ -794,13 +782,8 @@ async function uploadReceipt() {
       error.message || "Unable to scan the receipt.",
       true
     );
-    uploadReceiptButton.disabled = false;
-    uploadReceiptButton.textContent = "Try Again";
   }
 }
-
-uploadReceiptButton.addEventListener("click", uploadReceipt);
-
 
 const reviewCard = document.getElementById("reviewCard");
 const reviewMerchant = document.getElementById("reviewMerchant");
@@ -820,10 +803,20 @@ function setReviewStatus(message, isError=false){
   reviewStatus.style.color = isError ? "#a33a2b" : "#245b3d";
 }
 
+function getTodayDateInputValue(){
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function renderReview(extraction){
   currentExtraction = extraction || {};
   reviewMerchant.value = extraction?.merchant_name ?? "";
-  reviewDate.value = extraction?.expense_date ?? "";
+  // When the receipt does not contain a usable date, default the review
+  // form to today's date using the user's local browser date.
+  reviewDate.value = extraction?.expense_date || getTodayDateInputValue();
   reviewTotal.value = extraction?.total_amount ?? "";
   reviewCurrency.value = extraction?.currency_code ?? "";
   reviewPayment.value = extraction?.payment_method ?? "";
@@ -1024,8 +1017,6 @@ confirmExpenseButton.addEventListener("click", async () => {
     setReviewStatus(`Expense saved successfully. ID: ${String(data).substring(0, 8)}…`);
     confirmExpenseButton.textContent = "Saved";
     confirmExpenseButton.disabled = true;
-    if (extractReceiptButton) extractReceiptButton.style.display = "none";
-    if (uploadReceiptButton) uploadReceiptButton.disabled = true;
 
     document.getElementById("receiptNote").textContent =
       currentInputMethod === "voice"
@@ -1048,57 +1039,6 @@ confirmExpenseButton.addEventListener("click", async () => {
     confirmExpenseButton.textContent = "Confirm & Save";
   }
 });
-
-async function testExtractionFunction() {
-  currentInputMethod = "receipt";
-  if (!currentReceiptId) {
-    setReceiptUploadMessage("Upload a receipt first.", true);
-    return;
-  }
-
-  extractReceiptButton.disabled = true;
-  extractReceiptButton.textContent = "Extracting…";
-  setReceiptUploadMessage("");
-
-  try {
-    const { data, error } = await supabaseClient.functions.invoke("extract-receipt", {
-      body: { receipt_id: currentReceiptId }
-    });
-
-    if (error) throw error;
-
-    if (!data?.ok) {
-      throw new Error(data?.error || "Extraction function returned an unexpected response.");
-    }
-
-    if (!data?.extraction) {
-      throw new Error("Extraction function returned no structured extraction data.");
-    }
-
-    renderReview(data.extraction);
-
-    setReceiptUploadMessage(
-      "AI extraction completed successfully. Review the extracted fields below."
-    );
-
-    document.getElementById("receiptNote").textContent =
-      data.extraction?.notes ||
-      "Review the extracted expense details. Nothing is saved to the expenses table until you confirm.";
-
-    extractReceiptButton.textContent = "Extracted";
-    extractReceiptButton.disabled = false;
-    reviewCard.scrollIntoView({ behavior: "smooth", block: "start" });
-
-  } catch (error) {
-    console.error("Extraction function error:", error);
-    setReceiptUploadMessage(
-      error.message || "Unable to extract the receipt.",
-      true
-    );
-    extractReceiptButton.disabled = false;
-    extractReceiptButton.textContent = "Try Again";
-  }
-}
 
 
 
