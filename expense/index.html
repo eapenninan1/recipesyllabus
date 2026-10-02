@@ -447,6 +447,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
               aria-label="Press and hold to record in English or Malayalam">🎤</button>
     </div>
       
+    <div id="saveSuccessMessage" class="auth-message" style="display:none; margin:18px 0 0; padding:14px 16px; border-radius:14px; background:#edf6ef; border:1px solid #d6e6d9; color:#245b3d; font-size:14px; font-weight:600;">
+      Expense saved successfully.
+    </div>
+
     <div class="voice-area" id="voiceArea">
       <div class="voice-status" id="voiceStatus">
         Press and hold the microphone while you speak.
@@ -638,6 +642,7 @@ const uploadReceiptButton = document.getElementById("uploadReceiptButton");
 const extractReceiptButton = document.getElementById("extractReceiptButton");
 const receiptUploadMessage = document.getElementById("receiptUploadMessage");
 const scanCard = document.getElementById("scanCard");
+const saveSuccessMessage = document.getElementById("saveSuccessMessage");
 
 let selectedReceiptFile = null;
 let currentReceiptId = null;
@@ -660,6 +665,8 @@ receiptInput.addEventListener("change", () => {
   }
 
   selectedReceiptFile = file;
+  saveSuccessMessage.style.display = "none";
+  preview.style.display = "block";
   receiptPreview.src = URL.createObjectURL(file);
   receiptPreview.style.display = "block";
   previewTitle.textContent = "Receipt captured";
@@ -1025,9 +1032,15 @@ confirmExpenseButton.addEventListener("click", async () => {
         ? "This spoken expense has been saved as a confirmed expense."
         : "This receipt has been saved as a confirmed expense.";
 
-    // The review form is only needed until confirmation. Hide it
-    // automatically after a successful save.
+    // After confirmation, close the entire captured/review panel so the
+    // user is returned to the clean capture screen.
     reviewCard.style.display = "none";
+    preview.style.display = "none";
+    saveSuccessMessage.textContent =
+      currentInputMethod === "voice"
+        ? "Voice expense saved successfully."
+        : "Receipt expense saved successfully.";
+    saveSuccessMessage.style.display = "block";
   } catch (error) {
     console.error("Expense save error:", error);
     setReviewStatus(error.message || "Unable to save the expense.", true);
@@ -1203,6 +1216,8 @@ async function startRecording() {
   clearRecordedAudio();
   finalVoiceTranscript = "";
   currentVoiceText = "";
+  saveSuccessMessage.style.display = "none";
+  preview.style.display = "block";
   currentInputMethod = "voice";
   isHoldingRecord = true;
 
