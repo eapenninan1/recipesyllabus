@@ -660,6 +660,7 @@ receiptInput.addEventListener("change", async () => {
     return;
   }
 
+  resetForNewEntry();
   selectedReceiptFile = file;
   saveSuccessMessage.style.display = "none";
   preview.style.display = "block";
@@ -809,6 +810,41 @@ function getTodayDateInputValue(){
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+// Reset everything that belongs to the previous receipt/voice transaction.
+// This prevents an old image preview or a "Saved" button state from carrying
+// over into the next expense entry.
+function resetForNewEntry(){
+  currentExtraction = null;
+  currentReceiptId = null;
+  currentInputMethod = null;
+  currentVoiceText = "";
+  selectedReceiptFile = null;
+
+  reviewCard.style.display = "none";
+  reviewMerchant.value = "";
+  reviewDate.value = "";
+  reviewTotal.value = "";
+  reviewCurrency.value = "";
+  reviewPayment.value = "";
+  reviewItemsBody.innerHTML = "";
+  reviewItemsTotal.textContent = "0.00";
+  reviewStatus.textContent = "";
+
+  confirmExpenseButton.disabled = false;
+  confirmExpenseButton.textContent = "Confirm & Save";
+
+  receiptUploadArea.style.display = "none";
+  receiptUploadMessage.textContent = "";
+  receiptPreview.style.display = "none";
+  receiptPreview.removeAttribute("src");
+  preview.classList.remove("show");
+  preview.style.display = "none";
+
+  voiceResult.style.display = "none";
+  spokenText.textContent = "";
+  saveSuccessMessage.style.display = "none";
 }
 
 function renderReview(extraction){
@@ -1023,15 +1059,25 @@ confirmExpenseButton.addEventListener("click", async () => {
         ? "This spoken expense has been saved as a confirmed expense."
         : "This receipt has been saved as a confirmed expense.";
 
-    // After confirmation, close the entire captured/review panel so the
-    // user is returned to the clean capture screen.
-    reviewCard.style.display = "none";
+    // After confirmation, close the entire captured/review panel and reset
+    // the controls so the next receipt/voice entry starts fresh.
+    const savedInputMethod = currentInputMethod;
     preview.style.display = "none";
+    reviewCard.style.display = "none";
     saveSuccessMessage.textContent =
-      currentInputMethod === "voice"
+      savedInputMethod === "voice"
         ? "Voice expense saved successfully."
         : "Receipt expense saved successfully.";
     saveSuccessMessage.style.display = "block";
+
+    confirmExpenseButton.disabled = false;
+    confirmExpenseButton.textContent = "Confirm & Save";
+    currentExtraction = null;
+    currentReceiptId = null;
+    currentVoiceText = "";
+    selectedReceiptFile = null;
+    receiptPreview.style.display = "none";
+    receiptPreview.removeAttribute("src");
   } catch (error) {
     console.error("Expense save error:", error);
     setReviewStatus(error.message || "Unable to save the expense.", true);
@@ -1153,11 +1199,16 @@ async function startRecording() {
 
   if (mediaRecorder?.state === "recording") return;
 
+  resetForNewEntry();
   clearRecordedAudio();
   finalVoiceTranscript = "";
   currentVoiceText = "";
   saveSuccessMessage.style.display = "none";
   preview.style.display = "block";
+  previewTitle.textContent = "Voice expense";
+  receiptPreview.style.display = "none";
+  receiptPreview.removeAttribute("src");
+  voiceResult.style.display = "none";
   currentInputMethod = "voice";
   isHoldingRecord = true;
 
