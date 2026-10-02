@@ -1551,29 +1551,70 @@ if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
     true
   );
 } else {
-  // Pointer Events cover touch, mouse and stylus with one implementation.
-  holdRecordButton.addEventListener("pointerdown", async (event) => {
+  // True press-and-hold interaction:
+  // a short tap does NOTHING. Recording starts only after the button
+  // has been held continuously for the long-press threshold.
+  const HOLD_THRESHOLD_MS = 450;
+  let holdTimer = null;
+  let pointerIsDown = false;
+  let activePointerId = null;
+
+  const cancelPendingHold = () => {
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+  };
+
+  holdRecordButton.addEventListener("pointerdown", (event) => {
     event.preventDefault();
 
-    if (isProcessingVoice || isHoldingRecord) return;
+    if (isProcessingVoice || isHoldingRecord || pointerIsDown) return;
+
+    pointerIsDown = true;
+    activePointerId = event.pointerId;
 
     try {
       holdRecordButton.setPointerCapture(event.pointerId);
     } catch (_) {}
 
-    await startRecording();
+    cancelPendingHold();
+
+    holdTimer = setTimeout(async () => {
+      holdTimer = null;
+
+      // The finger must still be down. This is what prevents an accidental
+      // tap from starting a recording.
+      if (!pointerIsDown || isProcessingVoice || isHoldingRecord) return;
+
+      await startRecording();
+
+      // If the user released while getUserMedia was opening, stop immediately.
+      if (!pointerIsDown && isHoldingRecord) {
+        stopRecordingAndSend();
+      }
+    }, HOLD_THRESHOLD_MS);
   });
 
   const releaseRecording = (event) => {
     event?.preventDefault?.();
 
-    if (!isHoldingRecord) return;
-    stopRecordingAndSend();
+    pointerIsDown = false;
+    activePointerId = null;
+    cancelPendingHold();
+
+    if (isHoldingRecord) {
+      stopRecordingAndSend();
+    }
   };
 
   holdRecordButton.addEventListener("pointerup", releaseRecording);
   holdRecordButton.addEventListener("pointercancel", releaseRecording);
   holdRecordButton.addEventListener("lostpointercapture", () => {
+    pointerIsDown = false;
+    activePointerId = null;
+    cancelPendingHold();
+
     if (isHoldingRecord) stopRecordingAndSend();
   });
 
