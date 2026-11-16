@@ -3,38 +3,92 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Open Recipe Syllabus on YouTube</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>Recipe Syllabus | YouTube</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px 20px;
+      background: #fafafa;
+      color: #222;
+    }
+    .button {
+      display: inline-block;
+      background: #ff0033;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+      margin: 12px;
+    }
+    .secondary {
+      background: #555;
+    }
+  </style>
 </head>
 <body>
-  <h3>Opening Recipe Syllabus on YouTube...</h3>
-  <p id="status">Attempting to open the YouTube app.</p>
-  <p><a id="openApp" href="#">Open YouTube App</a></p>
-  <p><a href="https://www.youtube.com/@recipesyllabus">
-    Open YouTube in browser
-  </a></p>
+  <h2>Recipe Syllabus</h2>
+  <p id="status">Opening YouTube...</p>
+
+  <a id="openApp" class="button" href="#">
+    Open YouTube App
+  </a>
+
+  <br>
+
+  <a id="openWeb" class="button secondary"
+     href="https://www.youtube.com/@recipesyllabus">
+    Continue in Browser
+  </a>
 
   <script>
-    const channel = "https://www.youtube.com/@recipesyllabus";
+    const webURL =
+      "https://www.youtube.com/@recipesyllabus";
 
-    const intent =
+    const androidURL =
       "intent://www.youtube.com/@recipesyllabus" +
       "#Intent;scheme=https;" +
       "package=com.google.android.youtube;" +
       "S.browser_fallback_url=" +
-      encodeURIComponent(channel) +
+      encodeURIComponent(webURL) +
       ";end";
 
-    document.getElementById("openApp").href = intent;
+    // YouTube iOS custom URL scheme.
+    // Channel handle support can vary by app version.
+    const iosURL =
+      "youtube://www.youtube.com/@recipesyllabus";
 
-    // Attempt automatic app launch.
-    window.location.replace(intent);
+    const ua = navigator.userAgent;
+    const android = /Android/i.test(ua);
+    const ios = /iPhone|iPad|iPod/i.test(ua);
 
-    // If the browser blocks the launch, retain manual options.
-    setTimeout(() => {
-      document.getElementById("status").textContent =
-        "If YouTube did not open, tap Open YouTube App.";
-    }, 1500);
+    const appURL = android
+      ? androidURL
+      : ios
+        ? iosURL
+        : webURL;
+
+    const appButton = document.getElementById("openApp");
+    const status = document.getElementById("status");
+
+    appButton.href = appURL;
+
+    if (!android && !ios) {
+      window.location.replace(webURL);
+    } else {
+      // Automatic launch attempt.
+      window.location.href = appURL;
+
+      // The page remains available if the
+      // browser blocks the deep link.
+      setTimeout(() => {
+        status.textContent =
+          "If YouTube did not open, tap the button below.";
+      }, 1500);
+    }
   </script>
 </body>
 </html>
