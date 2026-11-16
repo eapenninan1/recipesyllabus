@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open Recipe Syllabus on YouTube</title>
+</head>
+<body>
+  <h3>Opening Recipe Syllabus on YouTube...</h3>
+  <p id="status">Attempting to open the YouTube app.</p>
+  <p><a id="openApp" href="#">Open YouTube App</a></p>
+  <p><a href="https://www.youtube.com/@recipesyllabus">
+    Open YouTube in browser
+  </a></p>
+
+  <script>
+    const channel = "https://www.youtube.com/@recipesyllabus";
+
+    const intent =
+      "intent://www.youtube.com/@recipesyllabus" +
+      "#Intent;scheme=https;" +
+      "package=com.google.android.youtube;" +
+      "S.browser_fallback_url=" +
+      encodeURIComponent(channel) +
+      ";end";
+
+    document.getElementById("openApp").href = intent;
+
+    // Attempt automatic app launch.
+    window.location.replace(intent);
+
+    // If the browser blocks the launch, retain manual options.
+    setTimeout(() => {
+      document.getElementById("status").textContent =
+        "If YouTube did not open, tap Open YouTube App.";
+    }, 1500);
+  </script>
+</body>
+</html>
